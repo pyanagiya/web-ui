@@ -36,25 +36,32 @@ export const msalInstance = new PublicClientApplication(msalConfig);
 
 // リダイレクト認証のハンドラを登録
 if (typeof window !== 'undefined') {
-  // リダイレクトコールバックの処理
-  msalInstance.handleRedirectPromise()
-    .then((response) => {
-      // リダイレクト認証の結果がある場合の処理
-      if (response) {
-        console.log('リダイレクト認証の結果を取得:', response);
-      }
-    })
-    .catch(error => {
-      console.error('リダイレクト認証の処理中にエラーが発生しました:', error);
-    });
-  
-  // アカウントが存在する場合、サイレントログインを試みる
+  // MSALの初期化とリダイレクト処理
   msalInstance.initialize().then(() => {
-    // アカウントが選択されている場合はサイレント認証を試みる
-    const accounts = msalInstance.getAllAccounts();
-    if (accounts.length > 0) {
-      msalInstance.setActiveAccount(accounts[0]);
-    }
+    console.log('✅ MSAL初期化完了');
+    
+    // リダイレクトコールバックの処理
+    msalInstance.handleRedirectPromise()
+      .then((response) => {
+        if (response) {
+          console.log('✅ リダイレクト認証の結果を取得:', response);
+        }
+        
+        // アカウントが存在する場合、アクティブアカウントを設定
+        const accounts = msalInstance.getAllAccounts();
+        if (accounts.length > 0) {
+          const activeAccount = msalInstance.getActiveAccount();
+          if (!activeAccount) {
+            msalInstance.setActiveAccount(accounts[0]);
+            console.log('✅ アクティブアカウントを設定:', accounts[0].username);
+          }
+        }
+      })
+      .catch(error => {
+        console.error('❌ リダイレクト認証の処理中にエラーが発生しました:', error);
+      });
+  }).catch(error => {
+    console.error('❌ MSAL初期化エラー:', error);
   });
 }
 
@@ -105,75 +112,134 @@ function AuthProviderContent({ children }: { children: ReactNode }) {
       
       setIsLoading(true);
       try {
-        // ローカルストレージにauth_tokenがない場合は即座に未認証とする
-        const localToken = localStorage.getItem('auth_token');
-        if (!localToken) {
-          console.log('❌ ローカルトークンなし、未認証状態');
+        // まずMSALアカウントの存在を確認
+        const allAccounts = instance.getAllAccounts();
+        console.log('🔍 MSAL全アカウント数:', allAccounts.length);
+        
+        if (allAccounts.length === 0) {
+          console.log('❌ MSALアカウントなし、未認証状態');
           setUser(null);
+          localStorage.removeItem('auth_token');
           setIsLoading(false);
           return;
         }
         
-        // MSALでの認証状態を確認
-        if (isMsalAuthenticated && accounts.length > 0) {
-          console.log('✅ MSAL認証済み、バックエンド認証チェック中...');
-          // バックエンドのトークン検証
-          const isAuth = await isAuthenticated();
-          console.log('🔍 バックエンド認証状態:', isAuth);
-          
-          if (isAuth) {
-            console.log('✅ バックエンド認証有効、ユーザー情報取得中...');
-            const userData = await getCurrentUser();
-            setUser(userData);
-            console.log('✅ ユーザー情報取得成功:', userData.username);
-          } else {
-            console.log('❌ バックエンド認証無効、API用トークンを再取得中...');
-            // バックエンドの認証が無効な場合、Azure ADトークンを取得してバックエンドに送信
-            const silentRequest = {
-              scopes: apiRequest.scopes, // API用のスコープを使用
-              account: accounts[0]
-            };
-            
-            try {
-              const response = await instance.acquireTokenSilent(silentRequest);
-              console.log('✅ API用トークンのサイレント取得成功');
-              console.log('🔄 handleAzureAuthResult呼び出し開始 (起動時認証チェック)');
-              await handleAzureAuthResult(response);
-              console.log('✅ handleAzureAuthResult完了 (起動時認証チェック)');
-            } catch (error) {
-              console.error('❌ サイレント認証に失敗しました:', error);
-              // サイレント認証に失敗した場合、ポップアップで試行
+        // アクティブアカウントを設定
+        const activeAccount = instance.getActiveAccount() || allAccounts[0];
+        if (!instance.getActiveAccount()) {
+          instance.setActiveAccount(activeAccount);
+          console.log('✅ アクティブアカウントを設定:', activeAccount.username);
+        }
+        
+        // ローカルストレージのトークンとバックエンド認証状態を確認
+        const localToken = localStorage.getItem('auth_token');
+        console.log('🔍 ローカルトークン:', !!localToken);
+        
+        // バックエンドの認証状態を確認
+        let isAuth = false;
+        if (localToken) {
+          try {
+            isAuth = await isAuthenticated();
+            console.log('🔍 バックエンド認証状態:', isAuth);
+          } catch (error) {
+            console.log('❌ バックエンド認証チェック失敗:', error);
+            // ローカルトークンを削除
+            localStorage.removeItem('auth_token');
+          }
+        }
+        
+        if (isAuth) {
+          // 既に認証済みの場合、ユーザー情報を取得
+          console.log('✅ 認証済み、ユーザー情報取得中...');
+          try {
+            // まずローカルストレージから復元を試行
+            const savedUserData = localStorage.getItem('user_data');
+            if (savedUserData) {
               try {
-                console.log('🔄 ポップアップでAPI用トークンを取得中...');
-                const popupResponse = await instance.acquireTokenPopup({
-                  scopes: apiRequest.scopes,
-                  account: accounts[0]
+                const parsedUserData = JSON.parse(savedUserData);
+                setUser(parsedUserData);
+                console.log('✅ ローカルストレージからユーザー情報復元:', parsedUserData.username);
+                
+                // バックグラウンドで最新のユーザー情報を取得して更新
+                getCurrentUser().then(freshUserData => {
+                  setUser(freshUserData);
+                  localStorage.setItem('user_data', JSON.stringify(freshUserData));
+                  console.log('✅ ユーザー情報を最新に更新:', freshUserData.username);
+                }).catch(error => {
+                  console.warn('ユーザー情報の更新に失敗（既存データを保持）:', error);
                 });
-                console.log('✅ ポップアップでAPI用トークン取得成功');
-                console.log('🔄 handleAzureAuthResult呼び出し開始 (ポップアップ認証)');
-                await handleAzureAuthResult(popupResponse);
-                console.log('✅ handleAzureAuthResult完了 (ポップアップ認証)');
-              } catch (popupError) {
-                console.error('❌ ポップアップでのAPI用トークン取得も失敗:', popupError);
-                // ここではエラーを無視し、明示的なログインを待つ
+                
+                return; // 早期リターン
+              } catch (parseError) {
+                console.warn('ローカルストレージのユーザーデータの解析に失敗:', parseError);
+                localStorage.removeItem('user_data');
               }
             }
+            
+            // ローカルストレージにデータがない場合はAPIから取得
+            const userData = await getCurrentUser();
+            setUser(userData);
+            localStorage.setItem('user_data', JSON.stringify(userData));
+            console.log('✅ ユーザー情報取得・保存成功:', userData.username);
+          } catch (error) {
+            console.error('❌ ユーザー情報取得失敗:', error);
+            // ユーザー情報取得に失敗した場合、再認証が必要
+            await performReAuthentication(activeAccount);
           }
         } else {
-          console.log('❌ MSAL未認証またはアカウントなし');
+          // 認証が無効またはない場合、MSALアカウントがあれば再認証を試行
+          console.log('❌ バックエンド認証無効、再認証を試行中...');
+          await performReAuthentication(activeAccount);
         }
       } catch (error) {
         console.error('❌ 認証チェックエラー:', error);
-        // トークンが無効な場合はクリアする
+        // エラーが発生した場合はキャッシュをクリア
         localStorage.removeItem('auth_token');
+        setUser(null);
       } finally {
         setIsLoading(false);
         console.log('🏁 認証チェック完了');
       }
     };
 
-    checkAuthentication();
-  }, [isMsalAuthenticated, accounts, instance, isLoggedOut]);
+    // MSALの初期化を待ってから認証チェックを実行
+    const initializeAndCheck = async () => {
+      try {
+        await instance.initialize();
+        // 少し待ってからチェック（MSALの完全な初期化を待つ）
+        setTimeout(checkAuthentication, 100);
+      } catch (error) {
+        console.error('❌ MSAL初期化エラー:', error);
+        setIsLoading(false);
+      }
+    };
+
+    initializeAndCheck();
+  }, [instance, isLoggedOut]);
+  
+  // 再認証処理
+  const performReAuthentication = async (account: any) => {
+    try {
+      console.log('🔄 再認証開始 for account:', account.username);
+      
+      // API用トークンをサイレントで取得
+      const silentRequest = {
+        scopes: apiRequest.scopes,
+        account: account
+      };
+      
+      const response = await instance.acquireTokenSilent(silentRequest);
+      console.log('✅ API用トークンのサイレント取得成功');
+      
+      await handleAzureAuthResult(response);
+      console.log('✅ 再認証完了');
+    } catch (error) {
+      console.error('❌ 再認証失敗:', error);
+      // 再認証に失敗した場合はログアウト状態にする
+      setUser(null);
+      localStorage.removeItem('auth_token');
+    }
+  };
   
   // Azure AD認証結果の処理
   const handleAzureAuthResult = async (response: AuthenticationResult) => {
@@ -221,6 +287,7 @@ function AuthProviderContent({ children }: { children: ReactNode }) {
       
       const authResponse = await loginWithAzureAD(msalAuthResult);
       setUser(authResponse.user);
+      localStorage.setItem('user_data', JSON.stringify(authResponse.user));
       toast.success('Azure ADでログインしました');
       return authResponse;
     } catch (error: any) {
@@ -329,23 +396,25 @@ function AuthProviderContent({ children }: { children: ReactNode }) {
   const checkAuth = async (): Promise<boolean> => {
     try {
       console.log('🔍 checkAuth開始', { 
-        isMsalAuthenticated, 
         accountsLength: accounts.length,
         isAuthenticating,
-        hasUser: !!user 
+        hasUser: !!user,
+        hasLocalToken: !!localStorage.getItem('auth_token')
       });
 
-      if (!isMsalAuthenticated || accounts.length === 0) {
-        console.log('❌ MSAL未認証またはアカウントなし');
-        return false;
-      }
-      
       // 認証処理中の場合はスキップ
       if (isAuthenticating) {
         console.log('⏳ 認証処理中のためスキップ');
         return false;
       }
 
+      // MSALアカウントの確認（useMsalのaccountsではなく直接MSALから取得）
+      const allAccounts = instance.getAllAccounts();
+      if (allAccounts.length === 0) {
+        console.log('❌ MSALアカウントなし');
+        return false;
+      }
+      
       // ユーザー情報が既にある場合は、バックエンド認証のみチェック
       if (user) {
         const isAuth = await isAuthenticated();
@@ -361,10 +430,16 @@ function AuthProviderContent({ children }: { children: ReactNode }) {
         setIsAuthenticating(true);
         
         try {
+          // アクティブアカウントを確保
+          const activeAccount = instance.getActiveAccount() || allAccounts[0];
+          if (!instance.getActiveAccount()) {
+            instance.setActiveAccount(activeAccount);
+          }
+          
           // バックエンド認証がない場合、API用トークンを取得してバックエンドに送信
           const silentRequest = {
             scopes: apiRequest.scopes,
-            account: accounts[0]
+            account: activeAccount
           };
           
           console.log('🔄 API用トークンをサイレント取得中...');
@@ -390,6 +465,7 @@ function AuthProviderContent({ children }: { children: ReactNode }) {
           console.log('🔄 ユーザー情報取得中...');
           const userData = await getCurrentUser();
           setUser(userData);
+          localStorage.setItem('user_data', JSON.stringify(userData));
           console.log('✅ ユーザー情報取得成功:', userData.username);
         } catch (error) {
           console.error('❌ ユーザー情報取得失敗:', error);

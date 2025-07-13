@@ -9,8 +9,10 @@ export const msalConfig = {
     navigateToLoginRequestUrl: true,
   },
   cache: {
-    cacheLocation: 'localStorage',
-    storeAuthStateInCookie: false,
+    cacheLocation: 'localStorage', // LocalStorageを使用してトークンを永続化
+    storeAuthStateInCookie: true,  // ブラウザのクッキーにも認証状態を保存
+    secureCookies: false, // HTTPSでない場合はfalse
+    claimsBasedCachingEnabled: true, // より効率的なキャッシング
   },
   system: {
     allowRedirectInIframe: true,

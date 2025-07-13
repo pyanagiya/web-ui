@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { toast } from 'sonner'
 import FileUpload from '../../components/FileUpload'
 import UserProfile from '../../components/auth/UserProfile'
+import ChatInterface from '../../components/chat/ChatInterface'
 import { useAuth } from '@/contexts/AuthContext'
 import { 
   File, 
@@ -574,119 +575,7 @@ export default function TEIOSApp() {
             )}
 
             {currentView === 'chat' && (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h1 className="text-3xl font-bold">AIチャット</h1>
-                  <Button onClick={() => setChatMessages([])}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    新規会話
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                  <Card className="lg:col-span-1">
-                    <CardHeader>
-                      <CardTitle className="text-lg">会話履歴</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      {mockChatHistory.map((chat) => (
-                        <div key={chat.id} className="p-2 rounded-lg border hover:bg-accent cursor-pointer">
-                          <p className="font-medium text-sm truncate">{chat.title}</p>
-                          <p className="text-xs text-muted-foreground">{chat.timestamp}</p>
-                        </div>
-                      ))}
-                    </CardContent>
-                  </Card>
-
-                  <Card className="lg:col-span-3">
-                    <CardHeader>
-                      <CardTitle className="text-lg">AI質問応答</CardTitle>
-                      <CardDescription>文書から情報を検索してお答えします</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="h-96 border rounded-lg p-4 overflow-y-auto space-y-4">
-                        {chatMessages.length === 0 ? (
-                          <div className="text-center text-muted-foreground">
-                            <Bot className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                            <p>AIに質問を入力してください</p>
-                            <div className="mt-4 space-y-2">
-                              <Badge variant="outline" className="mx-1 cursor-pointer hover:bg-accent">
-                                提案書の成功事例を教えて
-                              </Badge>
-                              <Badge variant="outline" className="mx-1 cursor-pointer hover:bg-accent">
-                                育児休業制度について
-                              </Badge>
-                              <Badge variant="outline" className="mx-1 cursor-pointer hover:bg-accent">
-                                業績レポートの要約
-                              </Badge>
-                            </div>
-                          </div>
-                        ) : (
-                          chatMessages.map((message) => (
-                            <div
-                              key={message.id}
-                              className={`flex gap-3 ${
-                                message.type === 'user' ? 'justify-end' : 'justify-start'
-                              }`}
-                            >
-                              {message.type === 'assistant' && (
-                                <Avatar className="h-8 w-8">
-                                  <AvatarFallback className="bg-blue-600 text-white">
-                                    <Bot className="h-4 w-4" />
-                                  </AvatarFallback>
-                                </Avatar>
-                              )}
-                              <div
-                                className={`max-w-[80%] rounded-lg p-3 ${
-                                  message.type === 'user'
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-accent'
-                                }`}
-                              >
-                                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                                <p className="text-xs opacity-70 mt-1">{message.timestamp}</p>
-                                {message.documents && (
-                                  <div className="mt-2 space-y-1">
-                                    <p className="text-xs opacity-70">関連文書:</p>
-                                    {message.documents.map((docId) => {
-                                      const doc = documents.find(d => d.id === docId)
-                                      return doc ? (
-                                        <div key={docId} className="flex items-center gap-1 text-xs">
-                                          <FileText className="h-3 w-3" />
-                                          <span className="truncate">{doc.title}</span>
-                                        </div>
-                                      ) : null
-                                    })}
-                                  </div>
-                                )}
-                              </div>
-                              {message.type === 'user' && (
-                                <Avatar className="h-8 w-8">
-                                  <AvatarImage src={mockUser.avatar} />
-                                  <AvatarFallback>{mockUser.name[0]}</AvatarFallback>
-                                </Avatar>
-                              )}
-                            </div>
-                          ))
-                        )}
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="AIに質問を入力..."
-                          value={currentChatInput}
-                          onChange={(e) => setCurrentChatInput(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                          className="flex-1"
-                        />
-                        <Button onClick={handleSendMessage} disabled={!currentChatInput.trim()}>
-                          送信
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
+              <ChatInterface initialMode="rag" />
             )}
 
             {currentView === 'analytics' && (
