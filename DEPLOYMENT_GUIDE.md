@@ -40,32 +40,63 @@ GitHub ActionsのワークフローページからManual triggerで手動実行�
   - Azure App Service へのデプロイ
   - デプロイ後のヘルスチェック
 
-## 1. Azure サービスプリンシパルの作成
+## 1. Azure Federated Identity (OIDC) の設定
 
-以下のコマンドをAzure CLIで実行して、GitHub Actions用のサービスプリンシパルを作成してください：
+### アプリ登録とFederated Identity Credential作成
+
+以下のコマンドをAzure CLIで実行して、GitHub Actions用のOIDC設定を作成してください：
 
 ```bash
 # Azure にログイン
 az login
 
-# サブスクリプションを確認
-az account show
+# アプリ登録を作成
+az ad app create --display-name "teios-webui-github-oidc"
 
-# サービスプリンシパルを作成（App Serviceのリソースグループに対して）
-az ad sp create-for-rbac \
-  --name "teios-webui-github-actions" \
-  --role contributor \
-  --scopes /subscriptions/{subscription-id}/resourceGroups/{resource-group-name} \
-  --sdk-auth
+# サービスプリンシパルを作成（アプリIDを使用）
+az ad sp create --id {app-id}
 
-# 出力されたJSONをコピーしてGitHubのSecretsに設定してください
+# Federated Identity Credentialを作成（メインブランチ用）
+az ad app federated-credential create --id {app-id} --parameters '{
+  "name": "teios-webui-github-main",
+  "issuer": "https://token.actions.githubusercontent.com",
+  "subject": "repo:pyanagiya/web-ui:ref:refs/heads/main",
+  "description": "GitHub Actions Main Branch",
+  "audiences": ["api://AzureADTokenExchange"]
+}'
+
+# Federated Identity Credentialを作成（PR用）
+az ad app federated-credential create --id {app-id} --parameters '{
+  "name": "teios-webui-github-pr",
+  "issuer": "https://token.actions.githubusercontent.com",
+  "subject": "repo:pyanagiya/web-ui:pull_request",
+  "description": "GitHub Actions Pull Request",
+  "audiences": ["api://AzureADTokenExchange"]
+}'
+
+# リソースグループへのContributor権限を付与
+az role assignment create --assignee {app-id} --role contributor --scope /subscriptions/{subscription-id}/resourceGroups/teios-ai-rg
+```
+
+### 作成済み設定情報
+```
+App ID (Client ID): 4a592fb1-77b4-4fb0-aa80-630c8ca9801b
+Tenant ID: 75a0aac9-9542-45cd-8a40-b3a815e2e37a
+Subscription ID: cfa5e3dc-3e95-4579-8538-301d0feadd21
 ```
 
 ## 2. GitHub Secrets の設定
 
 GitHubリポジトリの Settings > Secrets and variables > Actions で以下のシークレットを追加：
 
-- **AZURE_CREDENTIALS**: 上記コマンドで出力されたJSON全体
+- **AZURE_CLIENT_ID**: `4a592fb1-77b4-4fb0-aa80-630c8ca9801b`
+- **AZURE_TENANT_ID**: `75a0aac9-9542-45cd-8a40-b3a815e2e37a`
+- **AZURE_SUBSCRIPTION_ID**: `cfa5e3dc-3e95-4579-8538-301d0feadd21`
+
+### OIDC（OpenID Connect）の利点
+- **セキュリティ向上**: 長期間有効なシークレットが不要
+- **自動ローテーション**: トークンは自動的に期限切れ
+- **細かい制御**: 特定のブランチやPRのみアクセス可能
 
 ## 3. App Service の設定確認
 
