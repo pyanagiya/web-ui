@@ -3,7 +3,7 @@
  */
 
 // APIのベースURL（環境変数から取得または開発用のデフォルト値）
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 /**
  * API呼び出しのための基本設定を含むfetch関数
@@ -53,7 +53,12 @@ export async function fetchAPI<T>(
   };
 
   // リクエスト実行
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const fullUrl = `${API_BASE_URL}/api/v1${endpoint}`;
+  console.log('🔍 fetchAPI - 送信URL:', fullUrl);
+  console.log('🔍 fetchAPI - API_BASE_URL:', API_BASE_URL);
+  console.log('🔍 fetchAPI - endpoint:', endpoint);
+  
+  const response = await fetch(fullUrl, {
     ...options,
     headers,
   });
@@ -97,7 +102,7 @@ export async function uploadDocuments(
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
   const headers: HeadersInit = token ? { 'Authorization': `Bearer ${token}` } : {};
   
-  const response = await fetch(`${API_BASE_URL}/documents/upload`, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/documents/upload`, {
     method: 'POST',
     body: formData,
     headers,

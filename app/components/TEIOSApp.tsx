@@ -186,7 +186,9 @@ export default function TEIOSApp() {
 
   const handleFileUpload = async (files: File[]) => {
     try {
-      // 実際のアップロード処理をここに実装
+      console.log('📤 ファイルアップロード処理開始:', files.length);
+      
+      // アップロードが成功した場合、UIの文書リストを更新
       const newDocuments = files.map((file, index) => ({
         id: (Date.now() + index).toString(),
         title: file.name.replace(/\.[^/.]+$/, ''), // 拡張子を除去
@@ -203,11 +205,11 @@ export default function TEIOSApp() {
       // 文書管理画面に切り替え
       setCurrentView('documents')
       
-      toast.success(`${files.length}個のファイルがアップロードされました`)
+      console.log('✅ ファイルアップロード処理完了');
       
     } catch (error) {
-      console.error('Upload failed:', error)
-      throw error
+      console.error('❌ ファイルアップロード処理エラー:', error);
+      throw error;
     }
   }
 

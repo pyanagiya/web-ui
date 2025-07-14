@@ -24,7 +24,8 @@ import {
   FileIcon,
   Loader2
 } from 'lucide-react'
-import { uploadDocuments } from '@/utils/api'
+import { uploadDocument, generateAutoTags, formatFileSize as apiFormatFileSize } from '@/utils/upload-api'
+import { testAuthentication, testUploadAuthentication } from '@/utils/test-auth'
 
 interface FileItem {
   id: string
@@ -186,6 +187,18 @@ export default function FileUpload({
     setIsUploading(true)
 
     try {
+      // 認証テストを実行
+      console.log('🔍 アップロード前に認証テストを実行...');
+      const authTestResult = await testAuthentication();
+      
+      if (!authTestResult) {
+        toast.error('認証に失敗しました。ログインし直してください。');
+        setIsUploading(false);
+        return;
+      }
+      
+      console.log('✅ 認証テスト成功、アップロード処理を開始...');
+
       // 全てのファイルをuploading状態に設定
       setFiles(prev => prev.map(f => 
         f.status === 'pending' ? { ...f, status: 'uploading', progress: 0 } : f
@@ -193,58 +206,97 @@ export default function FileUpload({
       
       // 実際のAPIを使ってファイルをアップロード
       try {
-        // APIコールでのメタデータ（オプション）
-        const metadata = {
-          department: 'general', // 部署などのメタデータ
-          document_type: 'reference' // ドキュメントの種類
-        };
+        const successfulUploads: File[] = [];
+        const failedUploads: { file: File; error: string }[] = [];
         
-        // 進捗シミュレーション（本来はアップロードの進捗を取得するべき）
-        const progressInterval = setInterval(() => {
-          setFiles(prev => prev.map(f => 
-            f.status === 'uploading' && f.progress < 90 
-              ? { ...f, progress: f.progress + 10 } 
-              : f
-          ))
-        }, 500);
+        // ファイルを順次アップロード
+        for (const fileItem of validFiles) {
+          try {
+            // 進捗を更新
+            setFiles(prev => prev.map(f => 
+              f.id === fileItem.id ? { ...f, progress: 25 } : f
+            ));
+            
+            // ファイル名から自動的にタグを生成
+            const autoTags = generateAutoTags(fileItem.file.name);
+            
+            // ファイルのタイトルを生成（拡張子を除去）
+            const title = fileItem.file.name.replace(/\.[^/.]+$/, '');
+            
+            // 進捗を更新
+            setFiles(prev => prev.map(f => 
+              f.id === fileItem.id ? { ...f, progress: 50 } : f
+            ));
+            
+            // アップロード実行
+            const result = await uploadDocument({
+              file: fileItem.file,
+              title: title,
+              department: '営業部', // 実際のユーザー部署から取得
+              confidentiality_level: 'internal',
+              tags: autoTags,
+              description: `${fileItem.file.name}のアップロード`
+            });
+            
+            // 進捗を更新
+            setFiles(prev => prev.map(f => 
+              f.id === fileItem.id ? { ...f, progress: 100, status: 'success' } : f
+            ));
+            
+            successfulUploads.push(fileItem.file);
+            
+            console.log('✅ ファイルアップロード成功:', result);
+            
+          } catch (fileError: any) {
+            console.error(`❌ ファイル ${fileItem.file.name} のアップロードに失敗:`, fileError);
+            
+            // エラー状態に更新
+            setFiles(prev => prev.map(f => 
+              f.id === fileItem.id ? { 
+                ...f, 
+                status: 'error', 
+                progress: 0,
+                error: fileError.message || 'アップロードに失敗しました'
+              } : f
+            ));
+            
+            failedUploads.push({ file: fileItem.file, error: fileError.message });
+          }
+        }
         
-        // 実際のアップロード処理を実行
-        const fileArray = validFiles.map(f => f.file);
-        const result = await uploadDocuments(fileArray, metadata);
+        // 結果を報告
+        if (successfulUploads.length > 0) {
+          toast.success(`${successfulUploads.length}ファイルが正常にアップロードされました`);
+          
+          // onUpload コールバックを呼び出し
+          await onUpload(successfulUploads);
+          
+          // 全て成功した場合はダイアログを閉じる
+          if (failedUploads.length === 0) {
+            setTimeout(() => {
+              onClose();
+            }, 1500);
+          }
+        }
         
-        clearInterval(progressInterval);
-        
-        // 成功状態に更新
-        setFiles(prev => prev.map(f => 
-          f.status === 'uploading' ? { ...f, status: 'success', progress: 100 } : f
-        ))
-        
-        // onUpload コールバックを呼び出し
-        await onUpload(validFiles.map(f => f.file));
-        
-        toast.success(`${validFiles.length}ファイルが正常にアップロードされました`);
-        
-        // 成功後、少し待ってからダイアログを閉じる
-        setTimeout(() => {
-          onClose();
-        }, 1500);
+        if (failedUploads.length > 0) {
+          toast.error(`${failedUploads.length}ファイルのアップロードに失敗しました`);
+        }
         
       } catch (apiError: any) {
-        console.error('API upload error:', apiError);
+        console.error('❌ アップロード処理エラー:', apiError);
         
-        // エラーメッセージを表示
-        const errorMessage = apiError.message || 'アップロード中にエラーが発生しました';
-        toast.error(errorMessage);
-        
-        // エラー状態に更新
+        // 全てのアップロード中ファイルをエラー状態に更新
         setFiles(prev => prev.map(f => 
           f.status === 'uploading' ? { 
             ...f, 
             status: 'error', 
             progress: 0,
-            error: errorMessage 
+            error: apiError.message || 'アップロード処理でエラーが発生しました'
           } : f
         ));
+        
+        toast.error('アップロード処理でエラーが発生しました');
       }
       
     } catch (error: any) {

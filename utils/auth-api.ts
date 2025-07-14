@@ -38,39 +38,23 @@ export async function loginWithAzureAD(tokenInfo: { accessToken: string; account
   const accessToken = tokenInfo.accessToken;
   
   try {
-    const response = await fetch(`${API_BASE_URL}/auth/azure-login`, {
+    // fetchAPI関数を使用してリクエストを送信
+    const responseData = await fetchAPI<any>('/auth/azure-login', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
       body: JSON.stringify({ 
         access_token: accessToken,
         account_info: tokenInfo.account // 追加のアカウント情報があれば送信
       }),
     });
 
-    if (!response.ok) {
-      let errorMessage = '';
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.error?.message || errorData.message || 'Azure ADログインに失敗しました';
-      } catch (e) {
-        errorMessage = `ログインエラー: ${response.status} ${response.statusText}`;
-      }
-      throw new Error(errorMessage);
-    }
-
-    const data = await response.json();
-    
     // バックエンドの応答構造に応じてデータを抽出
     let authResponse: AuthResponse;
-    if (data.data) {
+    if (responseData.data) {
       // 新しい構造: { success: true, data: { access_token, user, ... } }
-      authResponse = data.data;
+      authResponse = responseData.data;
     } else {
       // 古い構造: { access_token, user, ... }
-      authResponse = data;
+      authResponse = responseData;
     }
     
     // トークンをローカルストレージに保存
@@ -119,16 +103,15 @@ export async function getCurrentUser(): Promise<User> {
  */
 export async function validateToken(token: string): Promise<boolean> {
   try {
-    // verify-tokenの代わりに/auth/meエンドポイントを使用してトークンを検証
-    const response = await fetch(`${API_BASE_URL}/auth/me`, {
+    // fetchAPI関数を使用してトークンを検証
+    await fetchAPI('/auth/me', {
       method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
       },
     });
     
-    return response.ok;
+    return true;
   } catch (error) {
     return false;
   }
