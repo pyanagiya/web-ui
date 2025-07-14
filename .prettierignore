@@ -1,0 +1,12 @@
+# Prettierで無視するファイル
+node_modules/
+.next/
+out/
+build/
+dist/
+coverage/
+*.log
+.env*
+.DS_Store
+*.tsbuildinfo
+public/

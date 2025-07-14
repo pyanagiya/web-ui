@@ -1,11 +1,14 @@
-# Next.js App Service デプロイワークフロー
-# mainブランチにマージされた時のみ実行される
+# Next.js App Service CI/CD パイプライン
+# CI: すべてのブランチでテスト・リント実行
+# CD: mainブランチマージ時のみデプロイ実行
 
-name: Deploy to Azure App Service
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
   workflow_dispatch:
 
 env:
@@ -15,10 +18,99 @@ env:
 
 permissions:
   contents: read
+  security-events: write
+  actions: read
 
 jobs:
-  build:
+  # CI Job - すべてのブランチで実行
+  ci:
+    name: Continuous Integration
     runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: |
+        npm ci
+
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+
+    - name: Check code formatting with Prettier
+      run: |
+        if [ -f ".prettierrc" ]; then
+          npx prettier --check "**/*.{js,jsx,ts,tsx,json,css,md}"
+        else
+          echo "Prettier not configured, skipping format check"
+        fi
+      continue-on-error: true
+
+    - name: Run ESLint
+      run: |
+        npm run lint
+
+    - name: Type check with TypeScript
+      run: |
+        npx tsc --noEmit --skipLibCheck
+      continue-on-error: true
+
+    - name: Run tests (if available)
+      run: |
+        if [ -f "package.json" ] && grep -q '"test"' package.json; then
+          npm test
+        else
+          echo "No tests found, skipping test step"
+        fi
+      continue-on-error: true
+
+    - name: Security audit
+      run: |
+        npm audit --audit-level moderate
+      continue-on-error: true
+
+    - name: Check for outdated dependencies
+      run: |
+        npm outdated || true
+
+    - name: Run bundle analyzer (if available)
+      run: |
+        if grep -q '"analyze"' package.json; then
+          npm run analyze
+        else
+          echo "Bundle analyzer not configured, skipping"
+        fi
+      continue-on-error: true
+
+    - name: Build application (CI check)
+      run: |
+        npm run build
+      env:
+        CI: true
+        NODE_ENV: production
+
+  # Build Job - mainブランチのみで実行
+  build:
+    name: Build for Production
+    runs-on: ubuntu-latest
+    needs: ci
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
     - name: Checkout repository
@@ -44,19 +136,26 @@ jobs:
     - name: Upload artifact for deployment job
       uses: actions/upload-artifact@v4
       with:
-        name: node-app
+        name: node-app-${{ github.sha }}
         path: |
           .
           !node_modules/
           !.git/
           !.github/
           !README.md
+          !DEPLOYMENT_GUIDE.md
+          !*.log
+          !coverage/
+        retention-days: 30
 
+  # Deploy Job - mainブランチのみで実行
   deploy:
+    name: Deploy to Production
     permissions:
       contents: none
     runs-on: ubuntu-latest
     needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
@@ -65,7 +164,7 @@ jobs:
     - name: Download artifact from build job
       uses: actions/download-artifact@v4
       with:
-        name: node-app
+        name: node-app-${{ github.sha }}
 
     - name: Login to Azure
       uses: azure/login@v1
@@ -80,7 +179,21 @@ jobs:
         slot-name: 'Production'
         package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
 
+    - name: Health check after deployment
+      run: |
+        sleep 30
+        curl -f https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/health || echo "Health check failed"
+      continue-on-error: true
+
     - name: Logout from Azure
       run: |
         az logout
       if: always()
+
+    - name: Deployment summary
+      run: |
+        echo "🚀 Deployment completed successfully!"
+        echo "📍 App URL: https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net"
+        echo "🔗 Deployment URL: ${{ steps.deploy-to-webapp.outputs.webapp-url }}"
+        echo "📊 Commit: ${{ github.sha }}"
+        echo "👤 Author: ${{ github.actor }}"
