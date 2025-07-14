@@ -10,6 +10,36 @@ export interface OpenAIMessage {
   timestamp?: string;
 }
 
+export interface DirectChatSettings {
+  temperature?: number;
+  max_tokens?: number;
+  system_prompt?: string;
+}
+
+export interface DirectChatRequest {
+  message: string;
+  conversation_id?: string | null;
+  settings?: DirectChatSettings;
+}
+
+export interface TokenUsage {
+  input: number;
+  output: number;
+  total: number;
+}
+
+export interface DirectChatResponse {
+  message_id: string;
+  conversation_id: string;
+  response: string;
+  confidence_score: number;
+  response_type: string;
+  ai_model_used?: string;
+  tokens_used?: TokenUsage;
+  suggested_questions?: string[];
+  timestamp: string;
+}
+
 export interface OpenAIResponse {
   message: OpenAIMessage;
   usage?: {
@@ -31,21 +61,54 @@ export async function sendDirectOpenAIMessage(
     temperature?: number;
     max_tokens?: number;
     stream?: boolean;
+    conversation_id?: string;
+    system_prompt?: string;
   }
 ): Promise<OpenAIResponse> {
-  const response = await fetchAPI<{ data: OpenAIResponse }>('/ai/direct-chat', {
-    method: 'POST',
-    body: JSON.stringify({
-      messages,
-      options: {
-        model: options?.model || 'gpt-4',
+  try {
+    const requestData: DirectChatRequest = {
+      message: messages[messages.length - 1].content, // 最新のメッセージを送信
+      conversation_id: options?.conversation_id || null,
+      settings: {
         temperature: options?.temperature || 0.7,
         max_tokens: options?.max_tokens || 1000,
-        stream: options?.stream || false,
+        system_prompt: options?.system_prompt
       }
-    }),
-  });
-  return response.data;
+    };
+
+    console.log('Direct chat request:', requestData); // デバッグ用
+
+    const response = await fetchAPI<{ data: DirectChatResponse }>('/chat/direct', {
+      method: 'POST',
+      body: JSON.stringify(requestData),
+    });
+
+    console.log('Direct chat response:', response); // デバッグ用
+
+    // レスポンスを OpenAIResponse 形式に変換
+    return {
+      message: {
+        role: 'assistant',
+        content: response.data.response,
+        timestamp: response.data.timestamp
+      },
+      usage: response.data.tokens_used ? {
+        prompt_tokens: response.data.tokens_used.input,
+        completion_tokens: response.data.tokens_used.output,
+        total_tokens: response.data.tokens_used.total
+      } : undefined,
+      model: response.data.ai_model_used
+    };
+  } catch (error) {
+    console.error('Direct OpenAI API Error:', error);
+    
+    // エラーの詳細を含むカスタムエラーを投げる
+    if (error instanceof Error) {
+      throw new Error(`直接AIチャットエラー: ${error.message}`);
+    } else {
+      throw new Error('直接AIチャットで予期しないエラーが発生しました');
+    }
+  }
 }
 
 /**

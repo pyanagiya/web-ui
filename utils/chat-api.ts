@@ -17,6 +17,46 @@ export interface ChatSession {
   messages: ChatMessage[];
 }
 
+export interface ChatContext {
+  language?: string;
+  expertise_level?: string;
+  response_style?: string;
+}
+
+export interface SearchScope {
+  department?: string;
+  document_types?: string[];
+  date_range?: {
+    start: string;
+    end: string;
+  };
+}
+
+export interface RelatedDocument {
+  document_id: string;
+  title: string;
+  content_snippet: string;
+  relevance_score: number;
+  document_type?: string;
+  department?: string;
+}
+
+export interface ChatResponse {
+  text: string;
+  confidence_score: number;
+  response_type: string;
+  ai_model_used?: string;
+}
+
+export interface ChatMessageResponse {
+  message_id: string;
+  conversation_id: string;
+  response: ChatResponse;
+  related_documents: RelatedDocument[];
+  suggested_questions: string[];
+  timestamp: string;
+}
+
 /**
  * チャットセッション一覧の取得
  */
@@ -65,12 +105,24 @@ export async function updateChatSession(sessionId: string, name: string): Promis
 }
 
 /**
- * チャットメッセージの送信と応答の取得
+ * RAGチャットメッセージの送信と応答の取得
  */
-export async function sendChatMessage(sessionId: string, message: string): Promise<ChatMessage> {
-  const response = await fetchAPI<{ data: ChatMessage }>(`/chat/sessions/${sessionId}/messages`, {
+export async function sendChatMessage(
+  sessionId: string, 
+  message: string,
+  options?: {
+    context?: ChatContext;
+    searchScope?: SearchScope;
+  }
+): Promise<ChatMessageResponse> {
+  const response = await fetchAPI<{ data: ChatMessageResponse }>(`/chat/messages`, {
     method: 'POST',
-    body: JSON.stringify({ content: message }),
+    body: JSON.stringify({ 
+      message: message,
+      conversation_id: sessionId || null,
+      context: options?.context,
+      search_scope: options?.searchScope
+    }),
   });
   return response.data;
 }

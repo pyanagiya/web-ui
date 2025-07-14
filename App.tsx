@@ -109,20 +109,10 @@ const mockSystemMetrics = {
   todayQueries: 89
 }
 
-interface ChatMessage {
-  id: string
-  type: 'user' | 'assistant'
-  content: string
-  timestamp: string
-  documents?: string[]
-}
-
 export default function TEIOSApp() {
   const [currentView, setCurrentView] = useState('dashboard')
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
-  const [currentChatInput, setCurrentChatInput] = useState('')
   const [selectedDocument, setSelectedDocument] = useState<string | null>(null)
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false)
   const [documents, setDocuments] = useState(mockDocuments)
@@ -139,64 +129,8 @@ export default function TEIOSApp() {
 
   const handleLogout = () => {
     setIsAuthenticated(false)
-    setChatMessages([])
     setCurrentView('login')
     toast.success('ログアウトしました')
-  }
-
-  const handleSendMessage = () => {
-    if (!currentChatInput.trim()) return
-
-    const userMessage: ChatMessage = {
-      id: Date.now().toString(),
-      type: 'user',
-      content: currentChatInput,
-      timestamp: new Date().toLocaleTimeString('ja-JP')
-    }
-
-    setChatMessages(prev => [...prev, userMessage])
-    setCurrentChatInput('')
-
-    // AIレスポンスをシミュレート
-    setTimeout(() => {
-      const aiResponse: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        type: 'assistant',
-        content: getAIResponse(currentChatInput),
-        timestamp: new Date().toLocaleTimeString('ja-JP'),
-        documents: ['1', '2'] // 関連文書ID
-      }
-      setChatMessages(prev => [...prev, aiResponse])
-    }, 1000)
-  }
-
-  const getAIResponse = (query: string): string => {
-    if (query.includes('提案書') || query.includes('スタートアップ')) {
-      return `IT系スタートアップ企業向けの提案書の成功事例を見つけました：
-
-**A社向け提案書の事例**
-- 課題: レガシーシステムの運用コスト増大
-- 提案: クラウド移行による段階的モダナイゼーション
-- 結果: 売上150%向上、運用コスト40%削減
-
-この事例では特に、段階的な移行アプローチが成功の鍵となりました。関連文書をダウンロードして詳細をご確認ください。`
-    }
-    
-    if (query.includes('育児休業') || query.includes('制度')) {
-      return `2024年4月改定後の育児休業制度について：
-
-**取得期間**
-- 女性: 産前6週間 + 産後8週間 + 育児休業最大2年
-- 男性: 配偶者の出産日から最大2年間
-
-**給付率**
-- 開始から180日: 給与の67%
-- 181日以降: 給与の50%
-
-詳細は人事規程第15条をご確認ください。`
-    }
-
-    return `ご質問にお答えします。関連する文書を検索して、最適な情報を提供いたします。より具体的なご質問をいただければ、詳細な回答が可能です。`
   }
 
   const handleFileUpload = async (files: File[]) => {

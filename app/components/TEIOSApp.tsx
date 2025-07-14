@@ -261,7 +261,7 @@ export default function TEIOSApp() {
                 <Bot className="h-4 w-4 text-white" />
               </div>
               <div>
-                <p className="font-semibold text-sm">TEIOS</p>
+                <p className="font-semibold text-sm">AI-RAG</p>
                 <p className="text-xs text-muted-foreground">AI Documentation</p>
               </div>
             </div>
@@ -328,7 +328,7 @@ export default function TEIOSApp() {
           </SidebarFooter>
         </Sidebar>
 
-        <main className="flex-1 flex flex-col overflow-hidden">
+        <main className="flex-1">
           <div className="p-6">
             <div className="flex items-center gap-2 mb-6">
               <SidebarTrigger />
@@ -338,7 +338,9 @@ export default function TEIOSApp() {
                 <span className="capitalize">{currentView}</span>
               </div>
             </div>
+          </div>
 
+          <div className="px-6 pb-6">
             {currentView === 'dashboard' && (
               <div className="space-y-6">
                 <div className="flex items-center justify-between">

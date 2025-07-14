@@ -12,8 +12,37 @@ export async function fetchAPI<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  // 認証トークンの取得（ローカルストレージやCookieから）
-  const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+  // Azure ADの認証トークンの取得
+  let token = null;
+  
+  if (typeof window !== 'undefined') {
+    // デバッグモード: テスト用トークンを使用
+    const testToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0LXVzZXItMTIzIiwiZW1haWwiOiJ0ZXN0QGV4YW1wbGUuY29tIiwibmFtZSI6IlRlc3QgVXNlciIsIm9pZCI6InRlc3Qtb2JqZWN0LWlkLTQ1NiIsImV4cCI6MTc1MjQyMzAxOSwiaWF0IjoxNzUyNDE5NDE5fQ.IGX3Ix4SAVem-yOXUrs0ZqxjlQjTYcdXEOBieIHMWyU';
+    
+    // AuthContextから認証情報を取得
+    const authState = localStorage.getItem('authState');
+    if (authState) {
+      try {
+        const parsedAuthState = JSON.parse(authState);
+        if (parsedAuthState.accessToken) {
+          token = parsedAuthState.accessToken;
+        }
+      } catch (error) {
+        console.warn('Failed to parse auth state:', error);
+      }
+    }
+    
+    // フォールバック: 通常のauth_tokenを確認
+    if (!token) {
+      token = localStorage.getItem('auth_token');
+    }
+    
+    // 最終フォールバック: テスト用トークンを使用
+    if (!token) {
+      console.log('🔧 デバッグモード: テスト用トークンを使用');
+      token = testToken;
+    }
+  }
   
   // ヘッダーの設定
   const headers = {
