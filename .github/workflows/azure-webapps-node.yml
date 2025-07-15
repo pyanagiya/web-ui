@@ -137,16 +137,26 @@ jobs:
         
         # Copy built application
         cp -r .next deploy/
-        cp -r public deploy/
+        
+        # Copy required directories if they exist
+        if [ -d "public" ]; then cp -r public deploy/; fi
+        if [ -d "styles" ]; then cp -r styles deploy/; fi
+        if [ -d "app" ]; then cp -r app deploy/; fi
+        
+        # Copy essential files
         cp package.json deploy/
         cp package-lock.json deploy/
         cp next.config.js deploy/
         cp server.js deploy/
         
-        # Copy other necessary files
+        # Copy other necessary files if they exist
         if [ -f "tsconfig.json" ]; then cp tsconfig.json deploy/; fi
         if [ -f "tailwind.config.js" ]; then cp tailwind.config.js deploy/; fi
         if [ -f "postcss.config.js" ]; then cp postcss.config.js deploy/; fi
+        
+        # List deployment contents for verification
+        echo "Deployment package contents:"
+        ls -la deploy/
 
     - name: Upload artifact for deployment job
       uses: actions/upload-artifact@v4
