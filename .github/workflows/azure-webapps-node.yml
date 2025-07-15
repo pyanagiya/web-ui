@@ -1,114 +1,26 @@
-# Next.js App Service CI/CD パイプライン
-# CI: すべてのブランチでテスト・リント実行
-# CD: mainブランチマージ時のみデプロイ実行
-
-name: CI/CD Pipeline
+# Simplified Next.js App Service CI/CD Pipeline
+name: Deploy to Azure App Service
 
 on:
   push:
-    branches: [ "main", "develop" ]
-  pull_request:
-    branches: [ "main", "develop" ]
+    branches: [ "main" ]
   workflow_dispatch:
 
 env:
-  AZURE_WEBAPP_NAME: teios-ai-webui-iymm4la6qt4mo    # App Service名
-  AZURE_WEBAPP_PACKAGE_PATH: '.'                     # プロジェクトのパス
-  NODE_VERSION: '20.x'                              # Node.jsバージョン (App Serviceに合わせて20.x)
+  AZURE_WEBAPP_NAME: teios-ai-webui-iymm4la6qt4mo
+  NODE_VERSION: '20.x'
 
 permissions:
   contents: read
-  security-events: write
-  actions: read
-  id-token: write  # OIDC用に必要
+  id-token: write
 
 jobs:
-  # CI Job - すべてのブランチで実行
-  ci:
-    name: Continuous Integration
+  deploy:
+    name: Build and Deploy
     runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ env.NODE_VERSION }}
-        cache: 'npm'
-
-    - name: Install dependencies
-      run: |
-        npm ci --silent
-
-    - name: Cache dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.npm
-        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-node-
-
-    - name: Check code formatting with Prettier
-      run: |
-        if [ -f ".prettierrc" ]; then
-          npx prettier --check "**/*.{js,jsx,ts,tsx,json,css,md}"
-        else
-          echo "Prettier not configured, skipping format check"
-        fi
-      continue-on-error: true
-
-    - name: Run ESLint
-      run: |
-        npm run lint
-
-    - name: Type check with TypeScript
-      run: |
-        npx tsc --noEmit --skipLibCheck
-      continue-on-error: true
-
-    - name: Run tests (if available)
-      run: |
-        if [ -f "package.json" ] && grep -q '"test"' package.json; then
-          npm test
-        else
-          echo "No tests found, skipping test step"
-        fi
-      continue-on-error: true
-
-    - name: Security audit
-      run: |
-        npm audit --audit-level moderate --quiet || echo "Security audit completed with warnings"
-      continue-on-error: true
-
-    - name: Check for outdated dependencies
-      run: |
-        echo "Checking for outdated dependencies..."
-        npm outdated --depth=0 2>/dev/null || echo "Dependency check completed"
-
-    - name: Run bundle analyzer (if available)
-      run: |
-        if grep -q '"analyze"' package.json; then
-          npm run analyze
-        else
-          echo "Bundle analyzer not configured, skipping"
-        fi
-      continue-on-error: true
-
-    - name: Build application (CI check)
-      run: |
-        npm run build
-      env:
-        CI: true
-        NODE_ENV: production
-
-  # Build Job - mainブランチのみで実行
-  build:
-    name: Build for Production
-    runs-on: ubuntu-latest
-    needs: ci
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: 'Production'
+      url: https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net
 
     steps:
     - name: Checkout repository
@@ -121,102 +33,68 @@ jobs:
         cache: 'npm'
 
     - name: Install dependencies
-      run: |
-        npm ci --silent
+      run: npm ci --silent
 
     - name: Build application
-      run: |
-        npm run build
+      run: npm run build
       env:
         CI: true
         NODE_ENV: production
 
     - name: Create deployment package
       run: |
-        # Create a clean deployment directory
+        # Create deployment directory
         mkdir -p deploy
         
-        # Copy built application
+        # Copy built files
         cp -r .next deploy/
+        cp -r public deploy/ 2>/dev/null || true
+        cp -r app deploy/ 2>/dev/null || true
+        cp -r styles deploy/ 2>/dev/null || true
         
-        # Copy required directories if they exist
-        if [ -d "public" ]; then cp -r public deploy/; fi
-        if [ -d "styles" ]; then cp -r styles deploy/; fi
-        if [ -d "app" ]; then cp -r app deploy/; fi
-        
-        # Copy essential files
+        # Copy essential files only
         cp package.json deploy/
         cp package-lock.json deploy/
         cp next.config.js deploy/
         cp server.js deploy/
+        cp tailwind.config.js deploy/ 2>/dev/null || true
+        cp postcss.config.js deploy/ 2>/dev/null || true
         
-        # Copy other necessary files if they exist
-        if [ -f "tsconfig.json" ]; then cp tsconfig.json deploy/; fi
-        if [ -f "tailwind.config.js" ]; then cp tailwind.config.js deploy/; fi
-        if [ -f "postcss.config.js" ]; then cp postcss.config.js deploy/; fi
+        # Skip unnecessary files (*.md, *.txt, docs, etc.)
+        # These files are not needed for production deployment
         
-        # Move to deployment directory and install dependencies
+        # Optimize package.json for production
         cd deploy
+        node -e "
+          const pkg = require('./package.json');
+          // Remove devDependencies completely
+          delete pkg.devDependencies;
+          // Keep only essential scripts
+          pkg.scripts = {
+            start: pkg.scripts.start,
+            build: pkg.scripts.build
+          };
+          // Remove unnecessary fields
+          delete pkg.private;
+          require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2));
+        "
         
-        # Clean install of production dependencies only
-        echo "Installing production dependencies..."
-        npm ci --production --no-audit --no-fund --silent
+        # Install production dependencies only
+        npm ci --production --silent --no-audit --no-fund
         
-        # Remove unnecessary files to reduce package size
-        find node_modules -name "*.md" -delete
-        find node_modules -name "*.txt" -delete
-        find node_modules -name "*.ts" -delete
-        find node_modules -name "*.map" -delete
+        # Clean up unnecessary files
+        find node_modules -name "*.md" -delete 2>/dev/null || true
+        find node_modules -name "*.txt" -delete 2>/dev/null || true
+        find node_modules -name "*.map" -delete 2>/dev/null || true
+        find node_modules -name "*.d.ts" -delete 2>/dev/null || true
         find node_modules -name "test" -type d -exec rm -rf {} + 2>/dev/null || true
         find node_modules -name "tests" -type d -exec rm -rf {} + 2>/dev/null || true
-        find node_modules -name "*.test.*" -delete
-        find node_modules -name "*.spec.*" -delete
-        find node_modules -name "example*" -type d -exec rm -rf {} + 2>/dev/null || true
+        find node_modules -name "__tests__" -type d -exec rm -rf {} + 2>/dev/null || true
         find node_modules -name "docs" -type d -exec rm -rf {} + 2>/dev/null || true
-        find node_modules -name ".github" -type d -exec rm -rf {} + 2>/dev/null || true
+        find node_modules -name "examples" -type d -exec rm -rf {} + 2>/dev/null || true
         
-        # Verify Next.js is installed
-        echo "Verifying Next.js installation:"
-        if [ -d "node_modules/next" ]; then
-          echo "✅ Next.js found in node_modules"
-        else
-          echo "❌ Next.js not found in node_modules"
-        fi
-        
-        # Return to root directory
         cd ..
-        
-        # Show deployment package summary
-        echo "📦 Deployment package summary:"
-        echo "- Built files: $(ls -1 deploy/.next 2>/dev/null | wc -l) files"
-        echo "- Dependencies: $(ls -1 deploy/node_modules 2>/dev/null | wc -l) packages"
-        echo "- Package size: $(du -sh deploy/ | cut -f1)"
-
-    - name: Upload artifact for deployment job
-      uses: actions/upload-artifact@v4
-      with:
-        name: node-app-${{ github.sha }}
-        path: deploy/
-        retention-days: 30
-
-  # Deploy Job - mainブランチのみで実行
-  deploy:
-    name: Deploy to Production
-    permissions:
-      contents: read
-      id-token: write  # OIDC用に必要
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    environment:
-      name: 'Production'
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
-
-    steps:
-    - name: Download artifact from build job
-      uses: actions/download-artifact@v4
-      with:
-        name: node-app-${{ github.sha }}
+        echo "Package size: $(du -sh deploy/ | cut -f1)"
 
     - name: Login to Azure
       uses: azure/login@v2
@@ -225,7 +103,7 @@ jobs:
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-    - name: Configure App Service settings
+    - name: Configure App Service
       run: |
         az webapp config appsettings set \
           --name "${{ env.AZURE_WEBAPP_NAME }}" \
@@ -233,128 +111,74 @@ jobs:
           --settings \
             NODE_ENV=production \
             WEBSITES_PORT=8080 \
-            SCM_DO_BUILD_DURING_DEPLOYMENT=false \
-            WEBSITE_RUN_FROM_PACKAGE=0 \
             WEBSITE_NODE_DEFAULT_VERSION=20.x \
-            WEBSITE_HEALTHCHECK_MAXPINGFAILURES=20 \
-            WEBSITE_CONTAINER_READY_TIME=1200 \
-            WEBSITE_STARTUP_TIMEOUT=1200 \
-            WEBSITE_SCM_IDLE_TIMEOUT=1200 \
-            WEBSITE_TIME_ZONE="Asia/Tokyo"
-
-    - name: Configure startup command
-      run: |
+            WEBSITE_RUN_FROM_PACKAGE=1
+            
         az webapp config set \
           --name "${{ env.AZURE_WEBAPP_NAME }}" \
           --resource-group "teios-ai-rg" \
           --startup-file "node server.js"
 
-    - name: Deploy to Azure Web App
-      id: deploy-to-webapp
+    - name: Deploy to Azure
       run: |
-        # Create deployment package (exclude unnecessary files)
-        echo "Creating deployment package..."
-        if [ -f ".deployignore" ]; then
-          zip -r deploy.zip . -x@.deployignore -q
-        else
-          zip -r deploy.zip . -q
-        fi
+        cd deploy
+        # Create optimized zip excluding unnecessary files
+        zip -r ../deploy.zip . -x \
+          "*.md" \
+          "*.txt" \
+          "*.log" \
+          "*.tmp" \
+          "*.orig" \
+          "*.bak" \
+          "*.DS_Store" \
+          "*Thumbs.db" \
+          "node_modules/*/README*" \
+          "node_modules/*/CHANGELOG*" \
+          "node_modules/*/LICENSE*" \
+          "node_modules/*/HISTORY*" \
+          -q
+        cd ..
         
-        # Show package size
-        echo "Package size: $(du -sh deploy.zip | cut -f1)"
+        echo "Deploy package size: $(du -sh deploy.zip | cut -f1)"
         
-        # Deploy using Azure CLI
-        echo "Starting deployment..."
         az webapp deployment source config-zip \
           --name "${{ env.AZURE_WEBAPP_NAME }}" \
           --resource-group "teios-ai-rg" \
           --src deploy.zip \
-          --timeout 2400 \
-          --only-show-errors
-        
-        echo "Deployment command completed"
-        
-        # Verify deployment was successful
-        if [ $? -eq 0 ]; then
-          echo "✅ Deployment completed successfully"
-        else
-          echo "❌ Deployment may have failed"
-        fi
-        
-        # Set the webapp URL output
-        echo "webapp-url=https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net" >> $GITHUB_OUTPUT
+          --timeout 1200
 
-    - name: Health check after deployment
+    - name: Health check
       run: |
         echo "Waiting for app to start..."
-        sleep 300
+        sleep 90
         
-        # Check app status
-        az webapp show \
-          --name "${{ env.AZURE_WEBAPP_NAME }}" \
-          --resource-group "teios-ai-rg" \
-          --query "{state:state,hostNames:hostNames[0]}" \
-          --output table
-        
-        # Enhanced health check with detailed logging
-        max_attempts=15
-        attempt=1
-        
-        while [ $attempt -le $max_attempts ]; do
-          echo "Health check attempt $attempt/$max_attempts"
+        for i in {1..8}; do
+          echo "Health check attempt $i/8"
           
-          # Check health endpoint
-          health_response=$(curl -s -o /dev/null -w "%{http_code}" "https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/health" || echo "000")
-          
-          if [ "$health_response" = "200" ]; then
-            echo "Health check passed! App is running."
-            
-            # Test main page
-            page_response=$(curl -s -o /dev/null -w "%{http_code}" "https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net" || echo "000")
-            if [ "$page_response" = "200" ]; then
-              echo "Main page is also accessible."
-              echo "Deployment successful!"
-              exit 0
-            else
-              echo "Main page returned status: $page_response"
-            fi
-          else
-            echo "Health check failed with status: $health_response"
+          if curl -f -s https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/health > /dev/null; then
+            echo "✅ App is running!"
+            exit 0
           fi
           
-          # Show recent logs on failure
-          if [ $attempt -eq $max_attempts ]; then
-            echo "Max attempts reached. Downloading latest logs..."
-            az webapp log download \
-              --name "${{ env.AZURE_WEBAPP_NAME }}" \
-              --resource-group "teios-ai-rg" \
-              --log-file "webapp-logs-final.zip"
-            
-            echo "Latest application logs:"
+          if [ $i -eq 8 ]; then
+            echo "❌ Health check failed"
             az webapp log tail \
               --name "${{ env.AZURE_WEBAPP_NAME }}" \
               --resource-group "teios-ai-rg" \
               --provider application \
-              --logs 100 || true
-            
-            echo "Deployment failed after $max_attempts attempts."
+              --logs 30 || true
             exit 1
           fi
           
-          sleep 60
-          attempt=$((attempt + 1))
+          sleep 30
         done
-      continue-on-error: true
 
     - name: Logout from Azure
-      run: |
-        az logout
+      run: az logout
       if: always()
 
     - name: Deployment summary
       run: |
-        echo "🚀 Deployment completed successfully!"
+        echo "🚀 Deployment completed!"
         echo "📍 App URL: https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net"
-        echo "🔗 Deployment URL: ${{ steps.deploy-to-webapp.outputs.webapp-url }}"
-        echo "📊 Commit: ${{ github.sha }}"
-        echo "👤 Author: ${{ github.actor }}"
+      if: success()
