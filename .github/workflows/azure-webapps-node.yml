@@ -167,22 +167,31 @@ jobs:
       with:
         name: node-app-${{ github.sha }}
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ env.NODE_VERSION }}
-        cache: 'npm'
-
-    - name: Install production dependencies
-      run: |
-        npm ci --only=production
-
     - name: Login to Azure
       uses: azure/login@v2
       with:
         client-id: ${{ secrets.AZURE_CLIENT_ID }}
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    - name: Configure App Service settings
+      run: |
+        az webapp config appsettings set \
+          --name "${{ env.AZURE_WEBAPP_NAME }}" \
+          --resource-group "teios-ai-rg" \
+          --settings \
+            NODE_ENV=production \
+            WEBSITES_PORT=8080 \
+            SCM_DO_BUILD_DURING_DEPLOYMENT=true \
+            WEBSITE_RUN_FROM_PACKAGE=0 \
+            WEBSITE_NODE_DEFAULT_VERSION=20.x
+
+    - name: Configure startup command
+      run: |
+        az webapp config set \
+          --name "${{ env.AZURE_WEBAPP_NAME }}" \
+          --resource-group "teios-ai-rg" \
+          --startup-file "npm start"
 
     - name: Deploy to Azure Web App
       id: deploy-to-webapp
