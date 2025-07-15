@@ -136,6 +136,7 @@ jobs:
         name: node-app-${{ github.sha }}
         path: |
           .
+          !node_modules/
           !.git/
           !.github/
           !README.md
@@ -165,6 +166,16 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: node-app-${{ github.sha }}
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install production dependencies
+      run: |
+        npm ci --only=production
 
     - name: Login to Azure
       uses: azure/login@v2
