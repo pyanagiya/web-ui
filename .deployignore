@@ -1,0 +1,60 @@
+# Deployment ignore file
+# These files and directories will be excluded from deployment
+
+# Development files
+.git/
+.github/
+.vscode/
+*.log
+*.tmp
+*.swp
+*.swo
+*~
+
+# Dependencies
+node_modules/
+
+# Build output (will be copied separately)
+.next/
+dist/
+build/
+
+# Test files
+**/*.test.*
+**/*.spec.*
+__tests__/
+test/
+tests/
+coverage/
+
+# Development configuration
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# Documentation
+*.md
+docs/
+README*
+CHANGELOG*
+LICENSE*
+
+# Examples
+examples/
+example/
+demo/

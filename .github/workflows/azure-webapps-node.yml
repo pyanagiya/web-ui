@@ -158,9 +158,22 @@ jobs:
         # Move to deployment directory and install dependencies
         cd deploy
         
-        # Clean install of production dependencies
+        # Clean install of production dependencies only
         echo "Installing production dependencies..."
         npm ci --production --no-audit --no-fund --silent
+        
+        # Remove unnecessary files to reduce package size
+        find node_modules -name "*.md" -delete
+        find node_modules -name "*.txt" -delete
+        find node_modules -name "*.ts" -delete
+        find node_modules -name "*.map" -delete
+        find node_modules -name "test" -type d -exec rm -rf {} + 2>/dev/null || true
+        find node_modules -name "tests" -type d -exec rm -rf {} + 2>/dev/null || true
+        find node_modules -name "*.test.*" -delete
+        find node_modules -name "*.spec.*" -delete
+        find node_modules -name "example*" -type d -exec rm -rf {} + 2>/dev/null || true
+        find node_modules -name "docs" -type d -exec rm -rf {} + 2>/dev/null || true
+        find node_modules -name ".github" -type d -exec rm -rf {} + 2>/dev/null || true
         
         # Verify Next.js is installed
         echo "Verifying Next.js installation:"
@@ -223,9 +236,11 @@ jobs:
             SCM_DO_BUILD_DURING_DEPLOYMENT=false \
             WEBSITE_RUN_FROM_PACKAGE=0 \
             WEBSITE_NODE_DEFAULT_VERSION=20.x \
-            WEBSITE_HEALTHCHECK_MAXPINGFAILURES=10 \
-            WEBSITE_CONTAINER_READY_TIME=600 \
-            WEBSITE_STARTUP_TIMEOUT=600
+            WEBSITE_HEALTHCHECK_MAXPINGFAILURES=20 \
+            WEBSITE_CONTAINER_READY_TIME=1200 \
+            WEBSITE_STARTUP_TIMEOUT=1200 \
+            WEBSITE_SCM_IDLE_TIMEOUT=1200 \
+            WEBSITE_TIME_ZONE="Asia/Tokyo"
 
     - name: Configure startup command
       run: |
@@ -237,9 +252,13 @@ jobs:
     - name: Deploy to Azure Web App
       id: deploy-to-webapp
       run: |
-        # Create deployment package (exclude verbose output)
+        # Create deployment package (exclude unnecessary files)
         echo "Creating deployment package..."
-        zip -r deploy.zip . -q
+        if [ -f ".deployignore" ]; then
+          zip -r deploy.zip . -x@.deployignore -q
+        else
+          zip -r deploy.zip . -q
+        fi
         
         # Show package size
         echo "Package size: $(du -sh deploy.zip | cut -f1)"
@@ -250,7 +269,7 @@ jobs:
           --name "${{ env.AZURE_WEBAPP_NAME }}" \
           --resource-group "teios-ai-rg" \
           --src deploy.zip \
-          --timeout 1800 \
+          --timeout 2400 \
           --only-show-errors
         
         echo "Deployment command completed"
@@ -268,7 +287,7 @@ jobs:
     - name: Health check after deployment
       run: |
         echo "Waiting for app to start..."
-        sleep 180
+        sleep 300
         
         # Check app status
         az webapp show \
@@ -278,7 +297,7 @@ jobs:
           --output table
         
         # Enhanced health check with detailed logging
-        max_attempts=12
+        max_attempts=15
         attempt=1
         
         while [ $attempt -le $max_attempts ]; do
