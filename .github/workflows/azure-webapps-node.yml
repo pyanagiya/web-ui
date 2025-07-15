@@ -82,16 +82,51 @@ jobs:
         # Install production dependencies only
         npm ci --production --silent --no-audit --no-fund
         
-        # Clean up unnecessary files
+        # Clean up unnecessary files more aggressively
         find node_modules -name "*.md" -delete 2>/dev/null || true
         find node_modules -name "*.txt" -delete 2>/dev/null || true
         find node_modules -name "*.map" -delete 2>/dev/null || true
         find node_modules -name "*.d.ts" -delete 2>/dev/null || true
+        find node_modules -name "*.ts" -delete 2>/dev/null || true
+        find node_modules -name "CHANGELOG*" -delete 2>/dev/null || true
+        find node_modules -name "LICENSE*" -delete 2>/dev/null || true
+        find node_modules -name "README*" -delete 2>/dev/null || true
+        find node_modules -name "HISTORY*" -delete 2>/dev/null || true
+        find node_modules -name "*.coffee" -delete 2>/dev/null || true
+        find node_modules -name "*.less" -delete 2>/dev/null || true
+        find node_modules -name "*.scss" -delete 2>/dev/null || true
+        find node_modules -name "*.sass" -delete 2>/dev/null || true
         find node_modules -name "test" -type d -exec rm -rf {} + 2>/dev/null || true
         find node_modules -name "tests" -type d -exec rm -rf {} + 2>/dev/null || true
         find node_modules -name "__tests__" -type d -exec rm -rf {} + 2>/dev/null || true
         find node_modules -name "docs" -type d -exec rm -rf {} + 2>/dev/null || true
         find node_modules -name "examples" -type d -exec rm -rf {} + 2>/dev/null || true
+        find node_modules -name "example" -type d -exec rm -rf {} + 2>/dev/null || true
+        find node_modules -name "coverage" -type d -exec rm -rf {} + 2>/dev/null || true
+        find node_modules -name "benchmark" -type d -exec rm -rf {} + 2>/dev/null || true
+        find node_modules -name ".github" -type d -exec rm -rf {} + 2>/dev/null || true
+        find node_modules -name "man" -type d -exec rm -rf {} + 2>/dev/null || true
+        find node_modules -name "bin" -type d -exec rm -rf {} + 2>/dev/null || true
+        
+        # Remove specific heavy packages that aren't needed in production
+        rm -rf node_modules/@types 2>/dev/null || true
+        rm -rf node_modules/typescript 2>/dev/null || true
+        rm -rf node_modules/eslint* 2>/dev/null || true
+        rm -rf node_modules/prettier 2>/dev/null || true
+        rm -rf node_modules/@babel 2>/dev/null || true
+        rm -rf node_modules/webpack* 2>/dev/null || true
+        rm -rf node_modules/@next/swc-* 2>/dev/null || true
+        rm -rf node_modules/postcss 2>/dev/null || true
+        rm -rf node_modules/autoprefixer 2>/dev/null || true
+        rm -rf node_modules/tailwindcss 2>/dev/null || true
+        
+        # Show package size breakdown
+        echo "📦 Package analysis:"
+        echo "- Total size: $(du -sh . | cut -f1)"
+        echo "- .next size: $(du -sh .next | cut -f1)"
+        echo "- node_modules size: $(du -sh node_modules | cut -f1)"
+        echo "- Top 10 largest directories:"
+        du -sh node_modules/* 2>/dev/null | sort -rh | head -10 || echo "No modules found"
         
         cd ..
         echo "Package size: $(du -sh deploy/ | cut -f1)"
@@ -122,30 +157,36 @@ jobs:
     - name: Deploy to Azure
       run: |
         cd deploy
-        # Create optimized zip excluding unnecessary files
-        zip -r ../deploy.zip . -x \
-          "*.md" \
-          "*.txt" \
-          "*.log" \
-          "*.tmp" \
-          "*.orig" \
-          "*.bak" \
-          "*.DS_Store" \
-          "*Thumbs.db" \
-          "node_modules/*/README*" \
-          "node_modules/*/CHANGELOG*" \
-          "node_modules/*/LICENSE*" \
-          "node_modules/*/HISTORY*" \
+        
+        # Create highly optimized zip
+        echo "📦 Creating optimized deployment package..."
+        zip -r9 ../deploy.zip . -x \
+          "*.md" "*.txt" "*.log" "*.tmp" "*.orig" "*.bak" \
+          "*.DS_Store" "*Thumbs.db" "*.coffee" "*.less" "*.scss" "*.sass" \
+          "node_modules/*/README*" "node_modules/*/CHANGELOG*" \
+          "node_modules/*/LICENSE*" "node_modules/*/HISTORY*" \
+          "node_modules/*/AUTHORS*" "node_modules/*/CONTRIBUTORS*" \
+          "node_modules/*/test/*" "node_modules/*/tests/*" \
+          "node_modules/*/__tests__/*" "node_modules/*/docs/*" \
+          "node_modules/*/examples/*" "node_modules/*/example/*" \
+          "node_modules/*/coverage/*" "node_modules/*/benchmark/*" \
+          "node_modules/*/.github/*" "node_modules/*/man/*" \
           -q
+        
         cd ..
         
-        echo "Deploy package size: $(du -sh deploy.zip | cut -f1)"
+        # Show final package size
+        echo "📊 Final package size: $(du -sh deploy.zip | cut -f1)"
         
-        az webapp deployment source config-zip \
+        # Use newer az webapp deploy command instead of deprecated config-zip
+        echo "🚀 Starting deployment with az webapp deploy..."
+        az webapp deploy \
           --name "${{ env.AZURE_WEBAPP_NAME }}" \
           --resource-group "teios-ai-rg" \
-          --src deploy.zip \
-          --timeout 1200
+          --src-path deploy.zip \
+          --type zip \
+          --async false \
+          --timeout 900
 
     - name: Health check
       run: |
