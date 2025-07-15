@@ -216,7 +216,10 @@ jobs:
             WEBSITES_PORT=8080 \
             SCM_DO_BUILD_DURING_DEPLOYMENT=false \
             WEBSITE_RUN_FROM_PACKAGE=0 \
-            WEBSITE_NODE_DEFAULT_VERSION=20.x
+            WEBSITE_NODE_DEFAULT_VERSION=20.x \
+            WEBSITE_HEALTHCHECK_MAXPINGFAILURES=10 \
+            WEBSITE_CONTAINER_READY_TIME=600 \
+            WEBSITE_STARTUP_TIMEOUT=600
 
     - name: Configure startup command
       run: |
@@ -231,16 +234,16 @@ jobs:
         # Create deployment package
         zip -r deploy.zip .
         
-        # Deploy using Azure CLI in async mode to avoid timeout
+        # Deploy using Azure CLI
+        echo "Starting deployment..."
         az webapp deployment source config-zip \
           --name "${{ env.AZURE_WEBAPP_NAME }}" \
           --resource-group "teios-ai-rg" \
           --src deploy.zip \
-          --async
+          --timeout 1800 \
+          --only-show-errors
         
-        # Wait for deployment to complete
-        echo "Waiting for deployment to complete..."
-        sleep 60
+        echo "Deployment command completed"
         
         # Check deployment status
         az webapp deployment list \
@@ -255,7 +258,7 @@ jobs:
     - name: Health check after deployment
       run: |
         echo "Waiting for app to start..."
-        sleep 120
+        sleep 180
         
         # Check app status
         az webapp show \
@@ -264,24 +267,54 @@ jobs:
           --query "{state:state,hostNames:hostNames[0]}" \
           --output table
         
-        # Check if health endpoint is available
-        for i in {1..10}; do
-          echo "Health check attempt $i/10"
-          if curl -f -s https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/health; then
-            echo "Health check successful!"
-            break
-          else
-            echo "Health check failed, retrying in 30 seconds..."
-            sleep 30
-          fi
-        done
+        # Enhanced health check with detailed logging
+        max_attempts=12
+        attempt=1
         
-        # Check logs if health check fails
-        echo "Checking application logs..."
-        az webapp log download \
-          --name "${{ env.AZURE_WEBAPP_NAME }}" \
-          --resource-group "teios-ai-rg" \
-          --log-file "app-logs.zip" || echo "Failed to download logs"
+        while [ $attempt -le $max_attempts ]; do
+          echo "Health check attempt $attempt/$max_attempts"
+          
+          # Check health endpoint
+          health_response=$(curl -s -o /dev/null -w "%{http_code}" "https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/health" || echo "000")
+          
+          if [ "$health_response" = "200" ]; then
+            echo "Health check passed! App is running."
+            
+            # Test main page
+            page_response=$(curl -s -o /dev/null -w "%{http_code}" "https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net" || echo "000")
+            if [ "$page_response" = "200" ]; then
+              echo "Main page is also accessible."
+              echo "Deployment successful!"
+              exit 0
+            else
+              echo "Main page returned status: $page_response"
+            fi
+          else
+            echo "Health check failed with status: $health_response"
+          fi
+          
+          # Show recent logs on failure
+          if [ $attempt -eq $max_attempts ]; then
+            echo "Max attempts reached. Downloading latest logs..."
+            az webapp log download \
+              --name "${{ env.AZURE_WEBAPP_NAME }}" \
+              --resource-group "teios-ai-rg" \
+              --log-file "webapp-logs-final.zip"
+            
+            echo "Latest application logs:"
+            az webapp log tail \
+              --name "${{ env.AZURE_WEBAPP_NAME }}" \
+              --resource-group "teios-ai-rg" \
+              --provider application \
+              --logs 100 || true
+            
+            echo "Deployment failed after $max_attempts attempts."
+            exit 1
+          fi
+          
+          sleep 60
+          attempt=$((attempt + 1))
+        done
       continue-on-error: true
 
     - name: Logout from Azure

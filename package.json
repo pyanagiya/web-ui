@@ -2,6 +2,10 @@
   "name": "teios-rag-webui",
   "private": true,
   "version": "0.0.0",
+  "engines": {
+    "node": "20.x",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -15,7 +19,8 @@
     "test": "echo \"テストは今後実装予定\" && exit 0",
     "test:watch": "echo \"テストウォッチは今後実装予定\" && exit 0",
     "analyze": "cross-env ANALYZE=true next build",
-    "ci": "npm run lint && npm run type-check && npm run build"
+    "ci": "npm run lint && npm run type-check && npm run build",
+    "prestart": "npm run build"
   },
   "dependencies": {
     "@azure/msal-browser": "^4.15.0",
