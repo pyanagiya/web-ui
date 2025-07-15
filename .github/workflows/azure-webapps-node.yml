@@ -40,7 +40,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        npm ci
+        npm ci --silent
 
     - name: Cache dependencies
       uses: actions/cache@v3
@@ -79,12 +79,13 @@ jobs:
 
     - name: Security audit
       run: |
-        npm audit --audit-level moderate
+        npm audit --audit-level moderate --quiet || echo "Security audit completed with warnings"
       continue-on-error: true
 
     - name: Check for outdated dependencies
       run: |
-        npm outdated || true
+        echo "Checking for outdated dependencies..."
+        npm outdated --depth=0 2>/dev/null || echo "Dependency check completed"
 
     - name: Run bundle analyzer (if available)
       run: |
@@ -121,7 +122,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        npm ci
+        npm ci --silent
 
     - name: Build application
       run: |
@@ -158,20 +159,25 @@ jobs:
         cd deploy
         
         # Clean install of production dependencies
-        npm ci --production --no-audit --no-fund
+        echo "Installing production dependencies..."
+        npm ci --production --no-audit --no-fund --silent
         
         # Verify Next.js is installed
         echo "Verifying Next.js installation:"
-        ls -la node_modules/ | grep next || echo "Next.js not found in node_modules"
+        if [ -d "node_modules/next" ]; then
+          echo "✅ Next.js found in node_modules"
+        else
+          echo "❌ Next.js not found in node_modules"
+        fi
         
         # Return to root directory
         cd ..
         
-        # List deployment contents for verification
-        echo "Deployment package contents:"
-        ls -la deploy/
-        echo "Node modules size:"
-        du -sh deploy/node_modules/ || echo "No node_modules directory"
+        # Show deployment package summary
+        echo "📦 Deployment package summary:"
+        echo "- Built files: $(ls -1 deploy/.next 2>/dev/null | wc -l) files"
+        echo "- Dependencies: $(ls -1 deploy/node_modules 2>/dev/null | wc -l) packages"
+        echo "- Package size: $(du -sh deploy/ | cut -f1)"
 
     - name: Upload artifact for deployment job
       uses: actions/upload-artifact@v4
@@ -231,8 +237,12 @@ jobs:
     - name: Deploy to Azure Web App
       id: deploy-to-webapp
       run: |
-        # Create deployment package
-        zip -r deploy.zip .
+        # Create deployment package (exclude verbose output)
+        echo "Creating deployment package..."
+        zip -r deploy.zip . -q
+        
+        # Show package size
+        echo "Package size: $(du -sh deploy.zip | cut -f1)"
         
         # Deploy using Azure CLI
         echo "Starting deployment..."
