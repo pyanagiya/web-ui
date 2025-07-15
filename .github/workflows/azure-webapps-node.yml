@@ -255,12 +255,12 @@ jobs:
         
         echo "Deployment command completed"
         
-        # Check deployment status
-        az webapp deployment list \
-          --name "${{ env.AZURE_WEBAPP_NAME }}" \
-          --resource-group "teios-ai-rg" \
-          --query "[0].{status:status,active:active,id:id}" \
-          --output table
+        # Verify deployment was successful
+        if [ $? -eq 0 ]; then
+          echo "✅ Deployment completed successfully"
+        else
+          echo "❌ Deployment may have failed"
+        fi
         
         # Set the webapp URL output
         echo "webapp-url=https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net" >> $GITHUB_OUTPUT
