@@ -130,22 +130,29 @@ jobs:
         CI: true
         NODE_ENV: production
 
+    - name: Create deployment package
+      run: |
+        # Create a clean deployment directory
+        mkdir -p deploy
+        
+        # Copy built application
+        cp -r .next deploy/
+        cp -r public deploy/
+        cp package.json deploy/
+        cp package-lock.json deploy/
+        cp next.config.js deploy/
+        cp server.js deploy/
+        
+        # Copy other necessary files
+        if [ -f "tsconfig.json" ]; then cp tsconfig.json deploy/; fi
+        if [ -f "tailwind.config.js" ]; then cp tailwind.config.js deploy/; fi
+        if [ -f "postcss.config.js" ]; then cp postcss.config.js deploy/; fi
+
     - name: Upload artifact for deployment job
       uses: actions/upload-artifact@v4
       with:
         name: node-app-${{ github.sha }}
-        path: |
-          .
-          !node_modules/
-          !.git/
-          !.github/
-          !README.md
-          !DEPLOYMENT_GUIDE.md
-          !*.log
-          !coverage/
-          !webapp-logs*.zip
-          !deployments/
-          !LogFiles/
+        path: deploy/
         retention-days: 30
 
   # Deploy Job - mainブランチのみで実行
@@ -184,7 +191,8 @@ jobs:
             WEBSITES_PORT=8080 \
             SCM_DO_BUILD_DURING_DEPLOYMENT=true \
             WEBSITE_RUN_FROM_PACKAGE=0 \
-            WEBSITE_NODE_DEFAULT_VERSION=20.x
+            WEBSITE_NODE_DEFAULT_VERSION=20.x \
+            ENABLE_ORYX_BUILD=true
 
     - name: Configure startup command
       run: |
