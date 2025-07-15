@@ -6,16 +6,17 @@ export const msalConfig = {
     clientId: process.env.NEXT_PUBLIC_AZURE_AD_CLIENT_ID || '00000000-0000-0000-0000-000000000000',
     authority: `https://login.microsoftonline.com/${process.env.NEXT_PUBLIC_AZURE_AD_TENANT_ID || 'common'}`,
     redirectUri: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
-    navigateToLoginRequestUrl: true,
+    navigateToLoginRequestUrl: false, // falseに変更して無限リダイレクトを防ぐ
+    postLogoutRedirectUri: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
   },
   cache: {
     cacheLocation: 'localStorage', // LocalStorageを使用してトークンを永続化
     storeAuthStateInCookie: true,  // ブラウザのクッキーにも認証状態を保存
-    secureCookies: false, // HTTPSでない場合はfalse
+    secureCookies: typeof window !== 'undefined' ? window.location.protocol === 'https:' : false, // HTTPSの場合のみtrue
     claimsBasedCachingEnabled: true, // より効率的なキャッシング
   },
   system: {
-    allowRedirectInIframe: true,
+    allowRedirectInIframe: false, // セキュリティのためfalseに変更
     loggerOptions: {
       loggerCallback: (level: number, message: string, containsPii: boolean) => {
         if (containsPii) {
@@ -23,16 +24,16 @@ export const msalConfig = {
         }
         switch (level) {
           case 0: // Error
-            console.error(message);
+            console.error('[MSAL Error]', message);
             return;
           case 1: // Warning
-            console.warn(message);
+            console.warn('[MSAL Warning]', message);
             return;
           case 2: // Info
-            console.info(message);
+            console.info('[MSAL Info]', message);
             return;
           case 3: // Verbose
-            console.debug(message);
+            console.debug('[MSAL Debug]', message);
             return;
         }
       },
