@@ -231,19 +231,57 @@ jobs:
         # Create deployment package
         zip -r deploy.zip .
         
-        # Deploy using Azure CLI
+        # Deploy using Azure CLI in async mode to avoid timeout
         az webapp deployment source config-zip \
           --name "${{ env.AZURE_WEBAPP_NAME }}" \
           --resource-group "teios-ai-rg" \
-          --src deploy.zip
+          --src deploy.zip \
+          --async
+        
+        # Wait for deployment to complete
+        echo "Waiting for deployment to complete..."
+        sleep 60
+        
+        # Check deployment status
+        az webapp deployment list \
+          --name "${{ env.AZURE_WEBAPP_NAME }}" \
+          --resource-group "teios-ai-rg" \
+          --query "[0].{status:status,active:active,id:id}" \
+          --output table
         
         # Set the webapp URL output
         echo "webapp-url=https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net" >> $GITHUB_OUTPUT
 
     - name: Health check after deployment
       run: |
-        sleep 30
-        curl -f https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/health || echo "Health check failed"
+        echo "Waiting for app to start..."
+        sleep 120
+        
+        # Check app status
+        az webapp show \
+          --name "${{ env.AZURE_WEBAPP_NAME }}" \
+          --resource-group "teios-ai-rg" \
+          --query "{state:state,hostNames:hostNames[0]}" \
+          --output table
+        
+        # Check if health endpoint is available
+        for i in {1..10}; do
+          echo "Health check attempt $i/10"
+          if curl -f -s https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/health; then
+            echo "Health check successful!"
+            break
+          else
+            echo "Health check failed, retrying in 30 seconds..."
+            sleep 30
+          fi
+        done
+        
+        # Check logs if health check fails
+        echo "Checking application logs..."
+        az webapp log download \
+          --name "${{ env.AZURE_WEBAPP_NAME }}" \
+          --resource-group "teios-ai-rg" \
+          --log-file "app-logs.zip" || echo "Failed to download logs"
       continue-on-error: true
 
     - name: Logout from Azure
