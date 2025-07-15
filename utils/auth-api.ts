@@ -39,7 +39,7 @@ export async function loginWithAzureAD(tokenInfo: { accessToken: string; account
   
   try {
     // fetchAPI関数を使用してリクエストを送信
-    const responseData = await fetchAPI<any>('/auth/azure-login', {
+    const responseData = await fetchAPI<any>('/api/v1/auth/azure-login', {
       method: 'POST',
       body: JSON.stringify({ 
         access_token: accessToken,
@@ -78,7 +78,7 @@ export async function loginWithAzureAD(tokenInfo: { accessToken: string; account
 export async function logout(): Promise<void> {
   try {
     // バックエンドのログアウトAPIを呼び出し
-    await fetchAPI('/auth/logout', {
+    await fetchAPI('/api/v1/auth/logout', {
       method: 'POST',
     });
   } catch (error) {
@@ -94,7 +94,7 @@ export async function logout(): Promise<void> {
  * 現在のユーザー情報取得
  */
 export async function getCurrentUser(): Promise<User> {
-  const response = await fetchAPI<{ data: User }>('/auth/me');
+  const response = await fetchAPI<{ data: User }>('/api/v1/auth/me');
   return response.data;
 }
 
@@ -104,7 +104,7 @@ export async function getCurrentUser(): Promise<User> {
 export async function validateToken(token: string): Promise<boolean> {
   try {
     // fetchAPI関数を使用してトークンを検証
-    await fetchAPI('/auth/me', {
+    await fetchAPI('/api/v1/auth/me', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,

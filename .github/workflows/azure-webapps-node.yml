@@ -4,9 +4,18 @@ name: Deploy to Azure App Service
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch:
-
-env:
+  workflow_        # Configure App Service settings
+        az webapp config appsettings set \
+          --name "${{ env.AZURE_WEBAPP_NAME }}" \
+          --resource-group "teios-ai-rg" \
+          --settings \
+            NODE_ENV=production \
+            WEBSITES_PORT=8080 \
+            WEBSITE_NODE_DEFAULT_VERSION=20.x \
+            WEBSITE_RUN_FROM_PACKAGE=1 \
+            NEXT_PUBLIC_AZURE_AD_CLIENT_ID=9c2804fa-5504-4312-ba36-ee5987b9400a \
+            NEXT_PUBLIC_AZURE_AD_TENANT_ID=${{ secrets.AZURE_TENANT_ID }} \
+            NEXT_PUBLIC_USE_MOCK_API=truenv:
   AZURE_WEBAPP_NAME: teios-ai-webui-iymm4la6qt4mo
   NODE_VERSION: '20.x'
 
@@ -105,15 +114,29 @@ jobs:
 
     - name: Configure App Service
       run: |
-        # Configure Azure AD App redirect URIs
-        echo "Configuring Azure AD App redirect URIs..."
-        az ad app update \
-          --id 9c2804fa-5504-4312-ba36-ee5987b9400a \
-          --web-redirect-uris \
-            "https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net" \
-            "https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/" \
-            "http://localhost:3000" \
-            "http://localhost:3000/" || echo "Failed to update redirect URIs, continuing..."
+        # Get the correct Object ID for the Azure AD app
+        OBJECT_ID=$(az ad app list --filter "appId eq '9c2804fa-5504-4312-ba36-ee5987b9400a'" --query "[].id" --output tsv)
+        echo "Azure AD App Object ID: $OBJECT_ID"
+        
+        # Configure Azure AD App as Single-Page Application (SPA)
+        echo "Configuring Azure AD App as SPA with redirect URIs..."
+        az rest --method PATCH --url "https://graph.microsoft.com/v1.0/applications/$OBJECT_ID" --body '{
+          "spa": {
+            "redirectUris": [
+              "https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net",
+              "https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/",
+              "http://localhost:3000",
+              "http://localhost:3000/"
+            ]
+          },
+          "web": {
+            "redirectUris": []
+          }
+        }' || echo "Failed to update redirect URIs, continuing..."
+        
+        # Verify the update
+        echo "Updated app registration:"
+        az ad app show --id 9c2804fa-5504-4312-ba36-ee5987b9400a --query "{spa:spa.redirectUris, web:web.redirectUris}" --output json || true
         
         # Configure App Service settings
         az webapp config appsettings set \
@@ -125,7 +148,8 @@ jobs:
             WEBSITE_NODE_DEFAULT_VERSION=20.x \
             WEBSITE_RUN_FROM_PACKAGE=1 \
             NEXT_PUBLIC_AZURE_AD_CLIENT_ID=9c2804fa-5504-4312-ba36-ee5987b9400a \
-            NEXT_PUBLIC_AZURE_AD_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}
+            NEXT_PUBLIC_AZURE_AD_TENANT_ID=${{ secrets.AZURE_TENANT_ID }} \
+            NEXT_PUBLIC_API_URL=https://teios-ai-api-iymm4la6qt4mo.azurewebsites.net
             
         az webapp config set \
           --name "${{ env.AZURE_WEBAPP_NAME }}" \

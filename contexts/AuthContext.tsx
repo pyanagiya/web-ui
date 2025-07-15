@@ -288,6 +288,7 @@ function AuthProviderContent({ children }: { children: ReactNode }) {
       const authResponse = await loginWithAzureAD(msalAuthResult);
       setUser(authResponse.user);
       localStorage.setItem('user_data', JSON.stringify(authResponse.user));
+      console.log('✅ バックエンド認証完了、ユーザー情報設定:', authResponse.user.username);
       toast.success('Azure ADでログインしました');
       return authResponse;
     } catch (error: any) {

@@ -20,9 +20,16 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     try {
+      console.log('🔄 ログイン処理開始');
       await loginWithAzureAD();
-      router.push('/'); // ログイン成功後はホームページにリダイレクト
+      console.log('✅ ログイン成功、ホームページにリダイレクト');
+      
+      // 少し待ってからリダイレクト（状態更新を待つ）
+      setTimeout(() => {
+        router.push('/');
+      }, 100);
     } catch (err: any) {
+      console.error('❌ ログイン失敗:', err);
       setError(err.message || 'Azure ADログインに失敗しました。');
     } finally {
       setIsSubmitting(false);

@@ -2,8 +2,45 @@
  * API クライアントユーティリティ
  */
 
-// APIのベースURL（環境変数から取得または開発用のデフォルト値）
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// APIのベースURL（環境変数から取得または本番用のデフォルト値）
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://teios-ai-api-iymm4la6qt4mo.azurewebsites.net';
+
+// 接続状態の追跡
+let lastConnectionCheck = 0;
+let isConnected = false;
+
+/**
+ * バックエンドサーバーへの接続確認
+ */
+export async function checkBackendConnection(): Promise<boolean> {
+  // 1分以内に確認済みの場合はキャッシュを使用
+  const now = Date.now();
+  if (now - lastConnectionCheck < 60000) {
+    return isConnected;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/health`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      // タイムアウトを10秒に設定
+      signal: AbortSignal.timeout(10000),
+    });
+    
+    isConnected = response.ok;
+    lastConnectionCheck = now;
+    
+    console.log(`🔍 バックエンド接続確認: ${isConnected ? 'OK' : 'NG'} (${API_BASE_URL})`);
+    return isConnected;
+  } catch (error) {
+    console.error('🔍 バックエンド接続確認エラー:', error);
+    isConnected = false;
+    lastConnectionCheck = now;
+    return false;
+  }
+}
 
 /**
  * API呼び出しのための基本設定を含むfetch関数
@@ -16,9 +53,6 @@ export async function fetchAPI<T>(
   let token = null;
   
   if (typeof window !== 'undefined') {
-    // デバッグモード: テスト用トークンを使用
-    const testToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0LXVzZXItMTIzIiwiZW1haWwiOiJ0ZXN0QGV4YW1wbGUuY29tIiwibmFtZSI6IlRlc3QgVXNlciIsIm9pZCI6InRlc3Qtb2JqZWN0LWlkLTQ1NiIsImV4cCI6MTc1MjQyMzAxOSwiaWF0IjoxNzUyNDE5NDE5fQ.IGX3Ix4SAVem-yOXUrs0ZqxjlQjTYcdXEOBieIHMWyU';
-    
     // AuthContextから認証情報を取得
     const authState = localStorage.getItem('authState');
     if (authState) {
@@ -36,12 +70,6 @@ export async function fetchAPI<T>(
     if (!token) {
       token = localStorage.getItem('auth_token');
     }
-    
-    // 最終フォールバック: テスト用トークンを使用
-    if (!token) {
-      console.log('🔧 デバッグモード: テスト用トークンを使用');
-      token = testToken;
-    }
   }
   
   // ヘッダーの設定
@@ -53,30 +81,37 @@ export async function fetchAPI<T>(
   };
 
   // リクエスト実行
-  const fullUrl = `${API_BASE_URL}/api/v1${endpoint}`;
+  const fullUrl = `${API_BASE_URL}${endpoint}`;
   console.log('🔍 fetchAPI - 送信URL:', fullUrl);
   console.log('🔍 fetchAPI - API_BASE_URL:', API_BASE_URL);
   console.log('🔍 fetchAPI - endpoint:', endpoint);
   
-  const response = await fetch(fullUrl, {
-    ...options,
-    headers,
-  });
+  try {
+    const response = await fetch(fullUrl, {
+      ...options,
+      headers,
+    });
 
-  // エラーハンドリング
-  if (!response.ok) {
-    let errorMessage = '';
-    try {
-      const errorData = await response.json();
-      errorMessage = errorData.error?.message || 'APIリクエストエラー';
-    } catch (e) {
-      errorMessage = `APIリクエストエラー: ${response.status} ${response.statusText}`;
+    // エラーハンドリング
+    if (!response.ok) {
+      let errorMessage = '';
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error?.message || errorData.detail || 'APIリクエストエラー';
+      } catch (e) {
+        errorMessage = `APIリクエストエラー: ${response.status} ${response.statusText}`;
+      }
+      throw new Error(errorMessage);
     }
-    throw new Error(errorMessage);
-  }
 
-  // 正常なレスポンスの場合
-  return response.json();
+    // 正常なレスポンスの場合
+    return response.json();
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('バックエンドサーバーに接続できません。サーバーが起動していることを確認してください。');
+    }
+    throw error;
+  }
 }
 
 /**
@@ -112,7 +147,7 @@ export async function uploadDocuments(
     let errorMessage = '';
     try {
       const errorData = await response.json();
-      errorMessage = errorData.error?.message || 'ドキュメントアップロードエラー';
+      errorMessage = errorData.error?.message || errorData.detail || 'ドキュメントアップロードエラー';
     } catch (e) {
       errorMessage = `ドキュメントアップロードエラー: ${response.status} ${response.statusText}`;
     }
@@ -132,7 +167,7 @@ export async function getDocuments(params: {
   offset?: number;
   sort?: string;
   order?: 'asc' | 'desc';
-}) {
+} = {}) {
   // クエリパラメータの構築
   const queryParams = new URLSearchParams();
   
@@ -145,19 +180,19 @@ export async function getDocuments(params: {
   
   const queryString = queryParams.toString();
   
-  return fetchAPI(`/documents${queryString ? `?${queryString}` : ''}`);
+  return fetchAPI(`/api/v1/documents${queryString ? `?${queryString}` : ''}`);
 }
 
 /**
  * ドキュメント削除API
  */
 export async function deleteDocument(documentId: string) {
-  return fetchAPI(`/documents/${documentId}`, { method: 'DELETE' });
+  return fetchAPI(`/api/v1/documents/${documentId}`, { method: 'DELETE' });
 }
 
 /**
  * ヘルスチェックAPI
  */
 export async function checkApiHealth() {
-  return fetchAPI('/health');
+  return fetchAPI('/api/v1/health');
 }

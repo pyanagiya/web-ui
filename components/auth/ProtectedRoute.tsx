@@ -27,6 +27,20 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
         return;
       }
 
+      console.log('🔍 ProtectedRoute: 認証チェック開始', { 
+        user: !!user, 
+        isLoading, 
+        hasLocalToken: !!localStorage.getItem('auth_token') 
+      });
+
+      // ユーザー情報が既にある場合は認証済みとして扱う
+      if (user) {
+        console.log('✅ ProtectedRoute: ユーザー情報あり、認証済み');
+        setAuthCheckCompleted(true);
+        setIsChecking(false);
+        return;
+      }
+
       // ローカルストレージにトークンがない場合は即座にログインページにリダイレクト
       const localToken = localStorage.getItem('auth_token');
       if (!localToken) {
@@ -34,8 +48,6 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
         router.push('/login');
         return;
       }
-
-      console.log('🔍 ProtectedRoute: 認証チェック開始', { user: !!user, isLoading });
 
       try {
         setIsChecking(true);
