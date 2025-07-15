@@ -154,6 +154,11 @@ jobs:
         if [ -f "tailwind.config.js" ]; then cp tailwind.config.js deploy/; fi
         if [ -f "postcss.config.js" ]; then cp postcss.config.js deploy/; fi
         
+        # Install production dependencies in the deployment package
+        cd deploy
+        npm ci --only=production
+        cd ..
+        
         # List deployment contents for verification
         echo "Deployment package contents:"
         ls -la deploy/
@@ -199,10 +204,9 @@ jobs:
           --settings \
             NODE_ENV=production \
             WEBSITES_PORT=8080 \
-            SCM_DO_BUILD_DURING_DEPLOYMENT=true \
-            WEBSITE_RUN_FROM_PACKAGE=0 \
-            WEBSITE_NODE_DEFAULT_VERSION=20.x \
-            ENABLE_ORYX_BUILD=true
+            SCM_DO_BUILD_DURING_DEPLOYMENT=false \
+            WEBSITE_RUN_FROM_PACKAGE=1 \
+            WEBSITE_NODE_DEFAULT_VERSION=20.x
 
     - name: Configure startup command
       run: |
