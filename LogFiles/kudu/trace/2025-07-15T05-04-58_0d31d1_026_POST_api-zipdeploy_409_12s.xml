@@ -1,0 +1,16 @@
+<step title="Incoming Request" date="2025-07-15T05:04:58.795" instance="0d31d1" url="/api/zipdeploy?isAsync=true&amp;deployer=GITHUB_ZIP_DEPLOY&amp;message=%7B%22type%22%3A%22deployment%22%2C%22sha%22%3A%2276dc948c5dfc87f367bc19e31319ded0f14b5b13%22%2C%22repoName%22%3A%22pyanagiya%2Fweb-ui%22%2C%22actor%22%3A%22pyanagiya%22%2C%22slotName%22%3A%22Production%22%2C%22commitMessage%22%3A%22fix%3A%20Add%20production%20dependencies%20installation%20in%20deploy%20job%22%7D" method="POST" type="request" pid="821,1,21" Host="teios-ai-webui-iymm4la6qt4mo.scm.azurewebsites.net" User-Agent="GITHUBACTIONS_DeployWebAppToAzure_4e6a2630e9303da1851c0d1ad11b68a1432fd8a4815e010102b445b2f37eac45" Authorization="Bea..." Content-Type="application/octet-stream" Cookie="ARRAffinity=0d31d1e3b555b28bd1e1102783713510cb4a14cdd5a5d2b6e8d65e88240d42a3;Path=/;HttpOnly;Secure;Domain=teios-ai-webui-iymm4la6qt4mo.scm.azurewebsites.net; ARRAffinitySameSite=0d31d1e3b555b28bd1e1102783713510cb4a14cdd5a5d2b6e8d65e88240d42a3;Path=/;HttpOnly;SameSite=None;Secure;Domain=teios-ai-webui-iymm4la6qt4mo.scm.azurewebsites.net" Transfer-Encoding="chunked" X-ARR-LOG-ID="110fd341-7f08-4de2-8ae2-9fe5529c524b" CLIENT-IP="172.184.175.146:62480" X-SITE-DEPLOYMENT-ID="teios-ai-webui-iymm4la6qt4mo" WAS-DEFAULT-HOSTNAME="teios-ai-webui-iymm4la6qt4mo.scm.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/api/zipdeploy?isAsync=true&amp;deployer=GITHUB_ZIP_DEPLOY&amp;message=%7B%22type%22%3A%22deployment%22%2C%22sha%22%3A%2276dc948c5dfc87f367bc19e31319ded0f14b5b13%22%2C%22repoName%22%3A%22pyanagiya%2Fweb-ui%22%2C%22actor%22%3A%22pyanagiya%22%2C%22slotName%22%3A%22Production%22%2C%22commitMessage%22%3A%22fix%3A%20Add%20production%20dependencies%20installation%20in%20deploy%20job%22%7D" X-Client-IP="172.184.175.146" X-Client-Port="62480" >
+  <step title="Cleanup Xml Logs" date="2025-07-15T05:04:58.806" /><!-- duration: 28ms -->
+  <step title="ZipPushDeploy" date="2025-07-15T05:04:58.902" >
+    <step title="ZipDeploy. Extract zip." date="2025-07-15T05:04:58.962" /><!-- duration: 11ms -->
+    <step title="Starting PushDeployAsync" date="2025-07-15T05:04:59.002" /><!-- duration: 17ms -->
+    <step title="Writing artifact to /tmp/zipdeploy/11b89de7-889f-46f4-b35b-6c123a1ae60f.zip" date="2025-07-15T05:04:59.040" >
+      <step title="Writing multipart request body to /tmp/zipdeploy/11b89de7-889f-46f4-b35b-6c123a1ae60f.zip" date="2025-07-15T05:04:59.067" /><!-- duration: 4ms -->
+    </step><!-- duration: 11248ms -->
+    <step title="Start deployment in the background" date="2025-07-15T05:05:10.317" >
+      <step title="Acquiring Deployment Lock" date="2025-07-15T05:05:10.500" /><!-- duration: 9ms -->
+      <step title="Cannot Acquire Deployment Lock already held" date="2025-07-15T05:05:10.522" /><!-- duration: 18ms -->
+    </step><!-- duration: 290ms -->
+    <step title="There is a deployment currently in progress. Please try again when it completes." date="2025-07-15T05:05:10.626" /><!-- duration: 18ms -->
+  </step><!-- duration: 11744ms -->
+  <step title="Outgoing response" date="2025-07-15T05:05:10.674" type="response" statusCode="409" statusText="Conflict" /><!-- duration: 19ms -->
+</step><!-- duration: 11911ms -->

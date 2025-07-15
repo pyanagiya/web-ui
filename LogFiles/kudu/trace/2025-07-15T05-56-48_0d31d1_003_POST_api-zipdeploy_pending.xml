@@ -1,0 +1,20 @@
+<step title="Incoming Request" date="2025-07-15T05:56:48.307" instance="0d31d1" url="/api/zipdeploy?isAsync=true&amp;deployer=GITHUB_ZIP_DEPLOY&amp;message=%7B%22type%22%3A%22deployment%22%2C%22sha%22%3A%22b0e6489a1a97b6480998a97d735fa918e1122613%22%2C%22repoName%22%3A%22pyanagiya%2Fweb-ui%22%2C%22actor%22%3A%22pyanagiya%22%2C%22slotName%22%3A%22Production%22%2C%22commitMessage%22%3A%22Add%20App%20Service%20configuration%20steps%20to%20deployment%20workflow%5Cn%5Cn-%20Configure%20App%20Service%20settings%20(NODE_ENV%2C%20WEBSITES_PORT%2C%20SCM_DO_BUILD_DURING_DEPLOYMENT%2C%20etc.)%5Cn-%20Set%20startup%20command%20to%20%27npm%20start%27%5Cn-%20Ensure%20proper%20build%20and%20deployment%20configuration%22%7D" method="POST" type="request" pid="823,1,43" Host="teios-ai-webui-iymm4la6qt4mo.scm.azurewebsites.net" User-Agent="GITHUBACTIONS_DeployWebAppToAzure_4e6a2630e9303da1851c0d1ad11b68a1432fd8a4815e010102b445b2f37eac45" Authorization="Bea..." Content-Type="application/octet-stream" Cookie="ARRAffinity=0d31d1e3b555b28bd1e1102783713510cb4a14cdd5a5d2b6e8d65e88240d42a3;Path=/;HttpOnly;Secure;Domain=teios-ai-webui-iymm4la6qt4mo.scm.azurewebsites.net; ARRAffinitySameSite=0d31d1e3b555b28bd1e1102783713510cb4a14cdd5a5d2b6e8d65e88240d42a3;Path=/;HttpOnly;SameSite=None;Secure;Domain=teios-ai-webui-iymm4la6qt4mo.scm.azurewebsites.net" Transfer-Encoding="chunked" X-ARR-LOG-ID="f51a8056-b0bd-460e-94a3-59a1b8686fbf" CLIENT-IP="52.190.140.96:58304" X-SITE-DEPLOYMENT-ID="teios-ai-webui-iymm4la6qt4mo" WAS-DEFAULT-HOSTNAME="teios-ai-webui-iymm4la6qt4mo.scm.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/api/zipdeploy?isAsync=true&amp;deployer=GITHUB_ZIP_DEPLOY&amp;message=%7B%22type%22%3A%22deployment%22%2C%22sha%22%3A%22b0e6489a1a97b6480998a97d735fa918e1122613%22%2C%22repoName%22%3A%22pyanagiya%2Fweb-ui%22%2C%22actor%22%3A%22pyanagiya%22%2C%22slotName%22%3A%22Production%22%2C%22commitMessage%22%3A%22Add%20App%20Service%20configuration%20steps%20to%20deployment%20workflow%5Cn%5Cn-%20Configure%20App%20Service%20settings%20(NODE_ENV%2C%20WEBSITES_PORT%2C%20SCM_DO_BUILD_DURING_DEPLOYMENT%2C%20etc.)%5Cn-%20Set%20startup%20command%20to%20%27npm%20start%27%5Cn-%20Ensure%20proper%20build%20and%20deployment%20configuration%22%7D" X-Client-IP="52.190.140.96" X-Client-Port="58304" >
+  <step title="ZipPushDeploy" date="2025-07-15T05:56:48.390" >
+    <step title="ZipDeploy. Extract zip. Remote build." date="2025-07-15T05:56:48.398" /><!-- duration: 6ms -->
+    <step title="None repository commit" date="2025-07-15T05:56:48.413" >
+      <step title="Commit id: 01c54f2d-b9da-408d-a52a-1a7964fd9ef4" date="2025-07-15T05:56:48.415" Message="N/A" AuthorName="N/A" AuthorEmail="N/A" /><!-- duration: 2ms -->
+    </step><!-- duration: 9ms -->
+    <step title="Starting PushDeployAsync" date="2025-07-15T05:56:48.425" /><!-- duration: 4ms -->
+    <step title="Removing node_modules symlink" date="2025-07-15T05:56:48.466" >
+      <step title="Removing _del_node_modules symlink" date="2025-07-15T05:56:48.550" >
+        <step title="Writing artifact to /tmp/zipdeploy/61749906-0027-4fe1-b2c8-67064361b94c.zip" date="2025-07-15T05:56:48.598" >
+          <step title="Writing multipart request body to /tmp/zipdeploy/61749906-0027-4fe1-b2c8-67064361b94c.zip" date="2025-07-15T05:56:48.616" /><!-- duration: 3ms -->
+        </step><!-- duration: 470ms -->
+        <step title="Removing previous build artifact&apos;s manifest file" date="2025-07-15T05:56:49.087" >
+          <step title="Start deployment in the background" date="2025-07-15T05:56:49.145" >
+            <step title="Acquiring Deployment Lock" date="2025-07-15T05:56:49.202" /><!-- duration: 18ms -->
+            <step title="Acquired Deployment Lock" date="2025-07-15T05:56:49.283" /><!-- duration: 3ms -->
+          </step><!-- duration: 239ms -->
+        </step><!-- duration: 303ms -->
+        <step title="Outgoing response" date="2025-07-15T05:56:49.401" type="response" statusCode="202" statusText="Accepted" /><!-- duration: 7ms -->
+      </step><!-- duration: 862ms -->

@@ -158,7 +158,7 @@ jobs:
         cd deploy
         
         # Clean install of production dependencies
-        npm ci --omit=dev --no-audit --no-fund
+        npm ci --production --no-audit --no-fund
         
         # Verify Next.js is installed
         echo "Verifying Next.js installation:"
@@ -223,7 +223,7 @@ jobs:
         az webapp config set \
           --name "${{ env.AZURE_WEBAPP_NAME }}" \
           --resource-group "teios-ai-rg" \
-          --startup-file "npm start"
+          --startup-file "node server.js"
 
     - name: Deploy to Azure Web App
       id: deploy-to-webapp

@@ -1,0 +1,9 @@
+<step title="Incoming Request" date="2025-07-15T05:59:55.200" instance="0d31d1" url="/api/deployments/latest?deployer=GITHUB_ZIP_DEPLOY&amp;time=2025-07-15_05-56-49Z" method="GET" type="request" pid="823,1,57" Host="teios-ai-webui-iymm4la6qt4mo.scm.azurewebsites.net" User-Agent="GITHUBACTIONS_DeployWebAppToAzure_4e6a2630e9303da1851c0d1ad11b68a1432fd8a4815e010102b445b2f37eac45" Authorization="Bea..." Content-Type="application/json; charset=utf-8" Cookie="ARRAffinity=0d31d1e3b555b28bd1e1102783713510cb4a14cdd5a5d2b6e8d65e88240d42a3;Path=/;HttpOnly;Secure;Domain=teios-ai-webui-iymm4la6qt4mo.scm.azurewebsites.net; ARRAffinitySameSite=0d31d1e3b555b28bd1e1102783713510cb4a14cdd5a5d2b6e8d65e88240d42a3;Path=/;HttpOnly;SameSite=None;Secure;Domain=teios-ai-webui-iymm4la6qt4mo.scm.azurewebsites.net" Content-Length="0" X-ARR-LOG-ID="f8dfacdd-d15f-4db5-96cb-4e3b98df275a" CLIENT-IP="52.190.140.96:58305" X-SITE-DEPLOYMENT-ID="teios-ai-webui-iymm4la6qt4mo" WAS-DEFAULT-HOSTNAME="teios-ai-webui-iymm4la6qt4mo.scm.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/api/deployments/latest?deployer=GITHUB_ZIP_DEPLOY&amp;time=2025-07-15_05-56-49Z" X-Client-IP="52.190.140.96" X-Client-Port="58305" >
+  <step title="Cleanup Xml Logs" date="2025-07-15T05:59:55.217" /><!-- duration: 41ms -->
+  <step title="DeploymentService.GetResult" date="2025-07-15T05:59:55.284" >
+    <step title="DeploymentService.GetLatestDeployment" date="2025-07-15T05:59:55.286" >
+      <step title="DeploymentManager.GetResults" date="2025-07-15T05:59:55.305" /><!-- duration: 669ms -->
+    </step><!-- duration: 706ms -->
+  </step><!-- duration: 941ms -->
+  <step title="Outgoing response" date="2025-07-15T05:59:56.274" type="response" statusCode="202" statusText="Accepted" /><!-- duration: 11ms -->
+</step><!-- duration: 1105ms -->

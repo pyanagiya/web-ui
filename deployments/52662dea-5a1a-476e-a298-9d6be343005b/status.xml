@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<deployment>
+  <id>52662dea-5a1a-476e-a298-9d6be343005b</id>
+  <author>N/A</author>
+  <deployer>GITHUB_ZIP_DEPLOY</deployer>
+  <authorEmail>N/A</authorEmail>
+  <message>{"type":"deployment","sha":"28c96dd58cef825f20f60597e74fdf849b96661e","repoName":"pyanagiya/web-ui","actor":"pyanagiya","slotName":"Production","commitMessage":"refactor: Node.js 18.xマトリックステストを削除\n\n- CIをNode.js 20.xのみに統一\n- 実行時間の短縮とシンプル化\n- App Serviceの環境と一致"}</message>
+  <progress></progress>
+  <status>Success</status>
+  <statusText></statusText>
+  <lastSuccessEndTime>2025-07-15T00:30:15.7419877Z</lastSuccessEndTime>
+  <receivedTime>2025-07-15T00:30:10.8019625Z</receivedTime>
+  <startTime>2025-07-15T00:30:12.0515147Z</startTime>
+  <endTime>2025-07-15T00:30:15.7419877Z</endTime>
+  <complete>True</complete>
+  <is_temp>False</is_temp>
+  <is_readonly>True</is_readonly>
+  <buildSummary />
+</deployment>

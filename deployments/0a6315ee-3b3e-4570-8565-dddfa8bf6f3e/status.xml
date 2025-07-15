@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<deployment>
+  <id>0a6315ee-3b3e-4570-8565-dddfa8bf6f3e</id>
+  <author>N/A</author>
+  <deployer>GITHUB_ZIP_DEPLOY</deployer>
+  <authorEmail>N/A</authorEmail>
+  <message>{"type":"deployment","sha":"246daa485d4cf40cff3664295e380c56e7b6299b","repoName":"pyanagiya/web-ui","actor":"pyanagiya","slotName":"Production","commitMessage":"Fix Next.js module not found error\n\n- Change WEBSITE_RUN_FROM_PACKAGE=0 for file system deployment\n- Use npm ci --omit=dev for cleaner production dependencies\n- Add Next.js installation verification\n- Improve deployment package debugging information"}</message>
+  <progress></progress>
+  <status>Success</status>
+  <statusText></statusText>
+  <lastSuccessEndTime>2025-07-15T07:30:22.3148943Z</lastSuccessEndTime>
+  <receivedTime>2025-07-15T07:30:20.1528775Z</receivedTime>
+  <startTime>2025-07-15T07:30:21.3969956Z</startTime>
+  <endTime>2025-07-15T07:30:22.3148943Z</endTime>
+  <complete>True</complete>
+  <is_temp>False</is_temp>
+  <is_readonly>True</is_readonly>
+  <buildSummary />
+</deployment>
