@@ -136,13 +136,15 @@ jobs:
         name: node-app-${{ github.sha }}
         path: |
           .
-          !node_modules/
           !.git/
           !.github/
           !README.md
           !DEPLOYMENT_GUIDE.md
           !*.log
           !coverage/
+          !webapp-logs*.zip
+          !deployments/
+          !LogFiles/
         retention-days: 30
 
   # Deploy Job - mainブランチのみで実行
