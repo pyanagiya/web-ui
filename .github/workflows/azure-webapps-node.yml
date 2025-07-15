@@ -154,14 +154,24 @@ jobs:
         if [ -f "tailwind.config.js" ]; then cp tailwind.config.js deploy/; fi
         if [ -f "postcss.config.js" ]; then cp postcss.config.js deploy/; fi
         
-        # Install production dependencies in the deployment package
+        # Move to deployment directory and install dependencies
         cd deploy
-        npm ci --only=production
+        
+        # Clean install of production dependencies
+        npm ci --omit=dev --no-audit --no-fund
+        
+        # Verify Next.js is installed
+        echo "Verifying Next.js installation:"
+        ls -la node_modules/ | grep next || echo "Next.js not found in node_modules"
+        
+        # Return to root directory
         cd ..
         
         # List deployment contents for verification
         echo "Deployment package contents:"
         ls -la deploy/
+        echo "Node modules size:"
+        du -sh deploy/node_modules/ || echo "No node_modules directory"
 
     - name: Upload artifact for deployment job
       uses: actions/upload-artifact@v4
@@ -205,7 +215,7 @@ jobs:
             NODE_ENV=production \
             WEBSITES_PORT=8080 \
             SCM_DO_BUILD_DURING_DEPLOYMENT=false \
-            WEBSITE_RUN_FROM_PACKAGE=1 \
+            WEBSITE_RUN_FROM_PACKAGE=0 \
             WEBSITE_NODE_DEFAULT_VERSION=20.x
 
     - name: Configure startup command
