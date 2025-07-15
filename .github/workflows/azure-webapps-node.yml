@@ -227,11 +227,18 @@ jobs:
 
     - name: Deploy to Azure Web App
       id: deploy-to-webapp
-      uses: azure/webapps-deploy@v2
-      with:
-        app-name: ${{ env.AZURE_WEBAPP_NAME }}
-        slot-name: 'Production'
-        package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+      run: |
+        # Create deployment package
+        zip -r deploy.zip .
+        
+        # Deploy using Azure CLI
+        az webapp deployment source config-zip \
+          --name "${{ env.AZURE_WEBAPP_NAME }}" \
+          --resource-group "teios-ai-rg" \
+          --src deploy.zip
+        
+        # Set the webapp URL output
+        echo "webapp-url=https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net" >> $GITHUB_OUTPUT
 
     - name: Health check after deployment
       run: |

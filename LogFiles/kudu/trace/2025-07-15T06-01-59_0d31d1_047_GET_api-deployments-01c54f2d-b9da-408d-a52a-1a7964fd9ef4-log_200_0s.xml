@@ -1,7 +1,0 @@
-<step title="Incoming Request" date="2025-07-15T06:01:59.188" instance="0d31d1" url="/api/deployments/01c54f2d-b9da-408d-a52a-1a7964fd9ef4/log" method="GET" type="request" pid="823,1,47" Accept="*/*" Host="teios-ai-webui-iymm4la6qt4mo.scm.azurewebsites.net" User-Agent="AZURECLI/2.70.0 (HOMEBREW)" Accept-Encoding="gzip, deflate" Authorization="Bas..." x-ms-client-request-id="358e070a-6141-11f0-a4dc-82d2aa722056" X-ARR-LOG-ID="358e070a-6141-11f0-a4dc-82d2aa722056" CLIENT-IP="223.218.113.23:64604" X-SITE-DEPLOYMENT-ID="teios-ai-webui-iymm4la6qt4mo" WAS-DEFAULT-HOSTNAME="teios-ai-webui-iymm4la6qt4mo.scm.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/api/deployments/01c54f2d-b9da-408d-a52a-1a7964fd9ef4/log" X-Client-IP="223.218.113.23" X-Client-Port="64604" >
-  <step title="Cleanup Xml Logs" date="2025-07-15T06:01:59.191" /><!-- duration: 8ms -->
-  <step title="DeploymentService.GetLogEntry" date="2025-07-15T06:01:59.204" >
-    <step title="DeploymentManager.GetLogEntries(id:01c54f2d-b9da-408d-a52a-1a7964fd9ef4)" date="2025-07-15T06:01:59.206" /><!-- duration: 40ms -->
-  </step><!-- duration: 51ms -->
-  <step title="Outgoing response" date="2025-07-15T06:01:59.266" type="response" statusCode="200" statusText="OK" /><!-- duration: 8ms -->
-</step><!-- duration: 95ms -->

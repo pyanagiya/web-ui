@@ -1,6 +1,0 @@
-<step title="Incoming Request" date="2025-07-15T07:22:06.802" instance="0d31d1" url="/logstream" method="GET" type="request" pid="820,1,18" Host="teios-ai-webui-iymm4la6qt4mo.scm.azurewebsites.net" User-Agent="AZURECLI/2.70.0 (HOMEBREW)" Accept-Encoding="identity" Authorization="Bas..." x-ms-client-request-id="656250b6-614c-11f0-81c0-82d2aa722056" X-ARR-LOG-ID="656250b6-614c-11f0-81c0-82d2aa722056" CLIENT-IP="125.103.205.78:59038" X-SITE-DEPLOYMENT-ID="teios-ai-webui-iymm4la6qt4mo" WAS-DEFAULT-HOSTNAME="teios-ai-webui-iymm4la6qt4mo.scm.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/logstream" X-Client-IP="125.103.205.78" X-Client-Port="59038" >
-  <step title="Cleanup Xml Logs" date="2025-07-15T07:22:06.804" /><!-- duration: 8ms -->
-  <step title="LogStreamHandlerMiddleware.Invoke" date="2025-07-15T07:22:06.822" /><!-- duration: 77ms -->
-  <step title="Error occurred" date="2025-07-15T07:24:06.920" type="error" text="LogStreamManager: ProcessRequest end" /><!-- duration: 5ms -->
-  <step title="Outgoing response" date="2025-07-15T07:24:06.937" type="response" statusCode="200" statusText="OK" /><!-- duration: 2ms -->
-</step><!-- duration: 120139ms -->
