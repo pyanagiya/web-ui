@@ -61,7 +61,7 @@ export interface ChatMessageResponse {
  * チャットセッション一覧の取得
  */
 export async function getChatSessions(): Promise<ChatSession[]> {
-  const response = await fetchAPI<{ data: ChatSession[] }>('/chat/sessions');
+  const response = await fetchAPI<{ data: ChatSession[] }>('/api/v1/chat/sessions');
   return response.data;
 }
 
@@ -69,7 +69,7 @@ export async function getChatSessions(): Promise<ChatSession[]> {
  * チャットセッションの取得
  */
 export async function getChatSession(sessionId: string): Promise<ChatSession> {
-  const response = await fetchAPI<{ data: ChatSession }>(`/chat/sessions/${sessionId}`);
+  const response = await fetchAPI<{ data: ChatSession }>(`/api/v1/chat/sessions/${sessionId}`);
   return response.data;
 }
 
@@ -77,7 +77,7 @@ export async function getChatSession(sessionId: string): Promise<ChatSession> {
  * 新しいチャットセッションの作成
  */
 export async function createChatSession(name?: string): Promise<ChatSession> {
-  const response = await fetchAPI<{ data: ChatSession }>('/chat/sessions', {
+  const response = await fetchAPI<{ data: ChatSession }>('/api/v1/chat/sessions', {
     method: 'POST',
     body: JSON.stringify({ name: name || `新規会話 ${new Date().toLocaleString()}` }),
   });
@@ -88,7 +88,7 @@ export async function createChatSession(name?: string): Promise<ChatSession> {
  * チャットセッションの削除
  */
 export async function deleteChatSession(sessionId: string): Promise<void> {
-  await fetchAPI(`/chat/sessions/${sessionId}`, {
+  await fetchAPI(`/api/v1/chat/sessions/${sessionId}`, {
     method: 'DELETE',
   });
 }
@@ -97,7 +97,7 @@ export async function deleteChatSession(sessionId: string): Promise<void> {
  * チャットセッションの更新（名前の変更など）
  */
 export async function updateChatSession(sessionId: string, name: string): Promise<ChatSession> {
-  const response = await fetchAPI<{ data: ChatSession }>(`/chat/sessions/${sessionId}`, {
+  const response = await fetchAPI<{ data: ChatSession }>(`/api/v1/chat/sessions/${sessionId}`, {
     method: 'PATCH',
     body: JSON.stringify({ name }),
   });
@@ -115,7 +115,7 @@ export async function sendChatMessage(
     searchScope?: SearchScope;
   }
 ): Promise<ChatMessageResponse> {
-  const response = await fetchAPI<{ data: ChatMessageResponse }>(`/chat/messages`, {
+  const response = await fetchAPI<{ data: ChatMessageResponse }>(`/api/v1/chat/messages`, {
     method: 'POST',
     body: JSON.stringify({ 
       message: message,
@@ -159,7 +159,7 @@ export async function sendChatFeedback(
   feedback: 'positive' | 'negative',
   comment?: string
 ): Promise<void> {
-  await fetchAPI(`/chat/sessions/${sessionId}/messages/${messageId}/feedback`, {
+  await fetchAPI(`/api/v1/chat/sessions/${sessionId}/messages/${messageId}/feedback`, {
     method: 'POST',
     body: JSON.stringify({ feedback, comment }),
   });

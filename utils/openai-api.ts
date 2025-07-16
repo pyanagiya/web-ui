@@ -78,7 +78,7 @@ export async function sendDirectOpenAIMessage(
 
     console.log('Direct chat request:', requestData); // デバッグ用
 
-    const response = await fetchAPI<{ data: DirectChatResponse }>('/chat/direct', {
+    const response = await fetchAPI<{ data: DirectChatResponse }>('/api/v1/chat/direct', {
       method: 'POST',
       body: JSON.stringify(requestData),
     });
@@ -123,7 +123,7 @@ export function getStreamingDirectOpenAIResponse(
   }
 ): EventSource {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-  const url = new URL('/ai/direct-chat/stream', window.location.origin);
+  const url = new URL('/api/v1/ai/direct-chat/stream', window.location.origin);
   
   // メッセージとオプションをクエリパラメータとして送信
   url.searchParams.append('messages', JSON.stringify(messages));
@@ -148,6 +148,6 @@ export function getStreamingDirectOpenAIResponse(
  * 利用可能なAzure OpenAIモデル一覧を取得
  */
 export async function getAvailableModels(): Promise<string[]> {
-  const response = await fetchAPI<{ data: string[] }>('/ai/models');
+  const response = await fetchAPI<{ data: string[] }>('/api/v1/ai/models');
   return response.data;
 }
