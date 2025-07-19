@@ -4,18 +4,9 @@ name: Deploy to Azure App Service
 on:
   push:
     branches: [ "main" ]
-  workflow_        # Configure App Service settings
-        az webapp config appsettings set \
-          --name "${{ env.AZURE_WEBAPP_NAME }}" \
-          --resource-group "teios-ai-rg" \
-          --settings \
-            NODE_ENV=production \
-            WEBSITES_PORT=8080 \
-            WEBSITE_NODE_DEFAULT_VERSION=20.x \
-            WEBSITE_RUN_FROM_PACKAGE=1 \
-            NEXT_PUBLIC_AZURE_AD_CLIENT_ID=9c2804fa-5504-4312-ba36-ee5987b9400a \
-            NEXT_PUBLIC_AZURE_AD_TENANT_ID=${{ secrets.AZURE_TENANT_ID }} \
-            NEXT_PUBLIC_USE_MOCK_API=truenv:
+  workflow_dispatch:
+
+env:
   AZURE_WEBAPP_NAME: teios-ai-webui-iymm4la6qt4mo
   NODE_VERSION: '20.x'
 
@@ -48,14 +39,12 @@ jobs:
       run: npm run build
       env:
         CI: true
-        NODE_ENV: production
 
-    - name: Create deployment package
+    - name: Prepare deployment package
       run: |
-        # Create deployment directory
         mkdir -p deploy
         
-        # Copy built files
+        # Copy built application
         cp -r .next deploy/
         cp -r public deploy/ 2>/dev/null || true
         cp -r app deploy/ 2>/dev/null || true
@@ -69,38 +58,21 @@ jobs:
         cp tailwind.config.js deploy/ 2>/dev/null || true
         cp postcss.config.js deploy/ 2>/dev/null || true
         
-        # Skip unnecessary files (*.md, *.txt, docs, etc.)
-        # These files are not needed for production deployment
-        
         # Optimize package.json for production
         cd deploy
         node -e "
           const pkg = require('./package.json');
-          // Remove devDependencies completely
           delete pkg.devDependencies;
-          // Keep only essential scripts
           pkg.scripts = {
             start: pkg.scripts.start,
             build: pkg.scripts.build
           };
-          // Remove unnecessary fields
           delete pkg.private;
           require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2));
         "
         
         # Install production dependencies only
         npm ci --production --silent --no-audit --no-fund
-        
-        # Clean up unnecessary files
-        find node_modules -name "*.md" -delete 2>/dev/null || true
-        find node_modules -name "*.txt" -delete 2>/dev/null || true
-        find node_modules -name "*.map" -delete 2>/dev/null || true
-        find node_modules -name "*.d.ts" -delete 2>/dev/null || true
-        find node_modules -name "test" -type d -exec rm -rf {} + 2>/dev/null || true
-        find node_modules -name "tests" -type d -exec rm -rf {} + 2>/dev/null || true
-        find node_modules -name "__tests__" -type d -exec rm -rf {} + 2>/dev/null || true
-        find node_modules -name "docs" -type d -exec rm -rf {} + 2>/dev/null || true
-        find node_modules -name "examples" -type d -exec rm -rf {} + 2>/dev/null || true
         
         cd ..
         echo "Package size: $(du -sh deploy/ | cut -f1)"
@@ -114,30 +86,6 @@ jobs:
 
     - name: Configure App Service
       run: |
-        # Get the correct Object ID for the Azure AD app
-        OBJECT_ID=$(az ad app list --filter "appId eq '9c2804fa-5504-4312-ba36-ee5987b9400a'" --query "[].id" --output tsv)
-        echo "Azure AD App Object ID: $OBJECT_ID"
-        
-        # Configure Azure AD App as Single-Page Application (SPA)
-        echo "Configuring Azure AD App as SPA with redirect URIs..."
-        az rest --method PATCH --url "https://graph.microsoft.com/v1.0/applications/$OBJECT_ID" --body '{
-          "spa": {
-            "redirectUris": [
-              "https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net",
-              "https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/",
-              "http://localhost:3000",
-              "http://localhost:3000/"
-            ]
-          },
-          "web": {
-            "redirectUris": []
-          }
-        }' || echo "Failed to update redirect URIs, continuing..."
-        
-        # Verify the update
-        echo "Updated app registration:"
-        az ad app show --id 9c2804fa-5504-4312-ba36-ee5987b9400a --query "{spa:spa.redirectUris, web:web.redirectUris}" --output json || true
-        
         # Configure App Service settings
         az webapp config appsettings set \
           --name "${{ env.AZURE_WEBAPP_NAME }}" \
@@ -159,21 +107,7 @@ jobs:
     - name: Deploy to Azure
       run: |
         cd deploy
-        # Create optimized zip excluding unnecessary files
-        zip -r ../deploy.zip . -x \
-          "*.md" \
-          "*.txt" \
-          "*.log" \
-          "*.tmp" \
-          "*.orig" \
-          "*.bak" \
-          "*.DS_Store" \
-          "*Thumbs.db" \
-          "node_modules/*/README*" \
-          "node_modules/*/CHANGELOG*" \
-          "node_modules/*/LICENSE*" \
-          "node_modules/*/HISTORY*" \
-          -q
+        zip -r ../deploy.zip . -q
         cd ..
         
         echo "Deploy package size: $(du -sh deploy.zip | cut -f1)"
@@ -187,23 +121,18 @@ jobs:
     - name: Health check
       run: |
         echo "Waiting for app to start..."
-        sleep 90
+        sleep 60
         
-        for i in {1..8}; do
-          echo "Health check attempt $i/8"
+        for i in {1..5}; do
+          echo "Health check attempt $i/5"
           
-          if curl -f -s https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/health > /dev/null; then
+          if curl -f -s https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net > /dev/null; then
             echo "✅ App is running!"
             exit 0
           fi
           
-          if [ $i -eq 8 ]; then
+          if [ $i -eq 5 ]; then
             echo "❌ Health check failed"
-            az webapp log tail \
-              --name "${{ env.AZURE_WEBAPP_NAME }}" \
-              --resource-group "teios-ai-rg" \
-              --provider application \
-              --logs 30 || true
             exit 1
           fi
           
