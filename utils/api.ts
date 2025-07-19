@@ -5,6 +5,14 @@
 // APIのベースURL（環境変数から取得または本番用のデフォルト値）
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://teios-ai-api-iymm4la6qt4mo.azurewebsites.net';
 
+// デバッグ情報をログ出力
+console.log('🔍 API_BASE_URL デバッグ情報:', {
+  NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+  API_BASE_URL: API_BASE_URL,
+  NODE_ENV: process.env.NODE_ENV,
+  window_location: typeof window !== 'undefined' ? window.location.origin : 'SSR'
+});
+
 // 接続状態の追跡
 let lastConnectionCheck = 0;
 let isConnected = false;

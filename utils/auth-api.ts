@@ -37,6 +37,13 @@ export async function loginWithAzureAD(tokenInfo: { accessToken: string; account
   // Azure ADから取得したアクセストークンをバックエンドに送信
   const accessToken = tokenInfo.accessToken;
   
+  console.log('🚀 Azure AD認証リクエスト開始:', {
+    API_BASE_URL: API_BASE_URL,
+    endpoint: '/api/v1/auth/azure-login',
+    hasAccessToken: !!accessToken,
+    accountInfo: tokenInfo.account?.username
+  });
+  
   try {
     // fetchAPI関数を使用してリクエストを送信
     const responseData = await fetchAPI<any>('/api/v1/auth/azure-login', {
