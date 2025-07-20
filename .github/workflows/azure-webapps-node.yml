@@ -95,7 +95,7 @@ jobs:
             WEBSITES_PORT=8080 \
             WEBSITE_NODE_DEFAULT_VERSION=20.x \
             WEBSITE_RUN_FROM_PACKAGE=1 \
-            NEXT_PUBLIC_AZURE_AD_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }} \
+            NEXT_PUBLIC_AZURE_AD_CLIENT_ID=9c2804fa-5504-4312-ba36-ee5987b9400a \
             NEXT_PUBLIC_AZURE_AD_TENANT_ID=${{ secrets.AZURE_TENANT_ID }} \
             NEXT_PUBLIC_API_URL=${{ secrets.API_URL }} \
             
