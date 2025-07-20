@@ -3,7 +3,7 @@
  */
 
 // APIのベースURL（環境変数から取得または本番用のデフォルト値）
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://teios-ai-api-iymm4la6qt4mo.azurewebsites.net';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 // デバッグ情報をログ出力
 console.log('🔍 API_BASE_URL デバッグ情報:', {

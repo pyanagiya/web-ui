@@ -1,5 +1,5 @@
 // API呼び出しのベースURL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://teios-ai-api-iymm4la6qt4mo.azurewebsites.net';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 /**
  * ファイルアップロードのレスポンス型

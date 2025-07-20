@@ -36,7 +36,7 @@ export function debugAuthState() {
 export async function testBackendConnection() {
   if (typeof window === 'undefined') return;
   
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://teios-ai-api-iymm4la6qt4mo.azurewebsites.net';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
   
   try {
     console.log('🔗 バックエンドサーバー接続テスト開始...');

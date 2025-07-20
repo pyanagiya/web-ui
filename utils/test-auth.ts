@@ -25,7 +25,7 @@ export async function testAuthentication() {
   
   // バックエンドAPIの認証テスト
   try {
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://teios-ai-api-iymm4la6qt4mo.azurewebsites.net';
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     
     console.log('🔄 認証テストリクエスト送信...');
     const response = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
@@ -71,7 +71,7 @@ export async function testUploadAuthentication() {
   }
   
   try {
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://teios-ai-api-iymm4la6qt4mo.azurewebsites.net';
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     
     // テスト用の小さなファイルを作成
     const testFile = new File(['test content'], 'test.txt', { type: 'text/plain' });
